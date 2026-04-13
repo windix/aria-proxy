@@ -50,7 +50,6 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
       return res.status(400).json({ error: 'ids must be "all_pending" or an array of ids' })
     }
 
-    const getStmt = db.prepare<RequestRecord>('SELECT * FROM requests WHERE id = ?')
     const updateStmt = db.prepare("UPDATE requests SET status = 'exported' WHERE id = ?")
 
     let records: RequestRecord[] = []
@@ -61,11 +60,11 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
           "SELECT * FROM requests WHERE status = 'pending' ORDER BY created_at ASC",
         )
         .all()
-    } else if (Array.isArray(ids)) {
-      for (const id of ids as number[]) {
-        const rec = getStmt.get(id)
-        if (rec) records.push(rec)
-      }
+    } else if (Array.isArray(ids) && ids.length > 0) {
+      const placeholders = ids.map(() => '?').join(',')
+      records = db
+        .prepare<RequestRecord>(`SELECT * FROM requests WHERE id IN (${placeholders})`)
+        .all(...ids)
     }
 
     let exportText = ''
