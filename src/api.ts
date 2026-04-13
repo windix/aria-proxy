@@ -101,7 +101,11 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
               }
               exportText += ' out=' + outVal + '\n'
             } else if (key === 'dir') {
-              // Already merged into out= above, skip
+              // If 'out' is missing, ensure 'dir' isn't lost
+              if (!opts['out']) {
+                const lastFolder = path.basename(val as string)
+                if (lastFolder) exportText += ' dir=' + lastFolder + '\n'
+              }
             } else {
               exportText += ' ' + key + '=' + String(val) + '\n'
             }

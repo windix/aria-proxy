@@ -1,8 +1,13 @@
+import fs from 'fs'
 import path from 'path'
 import type { DB } from './types'
 
 const dbPath: string =
   process.env.NODE_ENV === 'test' ? ':memory:' : path.join(__dirname, '../data/requests.sqlite')
+
+if (dbPath !== ':memory:') {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true })
+}
 
 const CREATE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS requests (
@@ -63,9 +68,8 @@ if (process.versions.bun) {
     exec(sql: string) {
       bunDb.exec(sql)
     },
-    transaction(fn: (...args: unknown[]) => void) {
-      const txn = bunDb.transaction(fn)
-      return (...args: unknown[]) => txn(...args)
+    transaction<T extends unknown[]>(fn: (...args: T) => void) {
+      return bunDb.transaction(fn)
     },
     close() {
       bunDb.close()
