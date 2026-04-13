@@ -142,7 +142,11 @@ docker run -d \
 **Build locally (single arch, loads into local Docker daemon):**
 
 ```bash
-docker buildx build --platform linux/amd64 -t aria-proxy --load .
+docker buildx build \
+  --platform linux/amd64 \
+  --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
+  --build-arg GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true) \
+  -t aria-proxy --load .
 ```
 
 **Build locally for multiple architectures (requires pushing to a registry):**

@@ -142,7 +142,11 @@ docker run -d \
 **本地构建（单架构，加载到本地 Docker）：**
 
 ```bash
-docker buildx build --platform linux/amd64 -t aria-proxy --load .
+docker buildx build \
+  --platform linux/amd64 \
+  --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
+  --build-arg GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true) \
+  -t aria-proxy --load .
 ```
 
 **本地多架构构建（需推送到镜像仓库）：**

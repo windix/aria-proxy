@@ -51,6 +51,16 @@ jobs:
         id: nvmrc
         run: echo "version=$(cat .nvmrc | tr -d 'v')" >> $GITHUB_OUTPUT
 
+      - name: Get git version info
+        id: git_info
+        run: |
+          echo "commit=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -59,6 +69,9 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: NODE_VERSION=${{ steps.nvmrc.outputs.version }}
+          build-args: |
+            NODE_VERSION=${{ steps.nvmrc.outputs.version }}
+            GIT_COMMIT=${{ steps.git_info.outputs.commit }}
+            GIT_TAG=${{ steps.git_info.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
