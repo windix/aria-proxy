@@ -12,10 +12,10 @@ pids
 *.pid.lock
 
 # Database
-requests.sqlite
-requests.sqlite-journal
-requests.sqlite-shm
-requests.sqlite-wal
+data/requests.sqlite
+data/requests.sqlite-journal
+data/requests.sqlite-shm
+data/requests.sqlite-wal
 
 # Dependency directories
 node_modules/
