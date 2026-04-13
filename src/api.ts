@@ -18,11 +18,15 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
       if (status && typeof status === 'string') {
         results = db
           .prepare<RequestRecord>(
-            'SELECT * FROM requests WHERE status = ? ORDER BY created_at DESC',
+            "SELECT * FROM requests WHERE status = ? AND status != 'deleted' ORDER BY created_at DESC",
           )
           .all(status)
       } else {
-        results = db.prepare<RequestRecord>('SELECT * FROM requests ORDER BY created_at DESC').all()
+        results = db
+          .prepare<RequestRecord>(
+            "SELECT * FROM requests WHERE status != 'deleted' ORDER BY created_at DESC",
+          )
+          .all()
       }
 
       // Parse headers JSON string back to array for the UI
@@ -31,7 +35,10 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
         headers: JSON.parse(r.headers || '[]') as string[],
       }))
 
-      res.json(parsed)
+      const { count } = db.prepare('SELECT count(*) as count FROM requests').get() as {
+        count: number
+      }
+      res.json({ items: parsed, totalCount: count })
     } catch (err) {
       logger.error(err)
       res.status(500).json({ error: (err as Error).message })

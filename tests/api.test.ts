@@ -14,17 +14,22 @@ describe('Dashboard Database API', () => {
     db.close()
   })
 
-  it('fetches all requests', async () => {
+  it('fetches all requests except deleted ones but preserves accurate totalCount', async () => {
     db.prepare('INSERT INTO requests (url, status) VALUES (?, ?)').run(
       'http://foo.com/bar',
       'pending',
     )
+    db.prepare('INSERT INTO requests (url, status) VALUES (?, ?)').run(
+      'http://delete.me',
+      'deleted',
+    )
 
     const res = await request(app).get('/api/requests').auth('hello', 'world')
     expect(res.status).toBe(200)
-    expect(res.body).toHaveLength(1)
-    expect(res.body[0].url).toBe('http://foo.com/bar')
-    expect(res.body[0].status).toBe('pending')
+    expect(res.body.items).toHaveLength(1)
+    expect(res.body.items[0].url).toBe('http://foo.com/bar')
+    expect(res.body.items[0].status).toBe('pending')
+    expect(res.body.totalCount).toBe(2)
   })
 
   it('exports pending requests exclusively and updates string layout natively', async () => {

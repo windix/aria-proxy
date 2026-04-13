@@ -24,19 +24,15 @@ createApp({
       return requests.value.filter(r => r.status === 'exported').length;
     });
     
-    const visibleRequests = computed(() => {
-      return requests.value.filter(r => r.status !== 'deleted');
-    });
-    
-    const totalCount = computed(() => {
-      return requests.value.length;
-    });
+    const totalCount = ref(0);
 
     // Methods
     const fetchRequests = async () => {
       try {
         const res = await fetch('/api/requests');
-        requests.value = await res.json();
+        const data = await res.json();
+        requests.value = data.items;
+        totalCount.value = data.totalCount;
       } catch (err) {
         console.error('Failed to fetch requests:', err);
       }
@@ -169,7 +165,6 @@ createApp({
     return {
       currentTab,
       requests,
-      visibleRequests,
       settings,
       expandedHeaders,
       pendingCount,
