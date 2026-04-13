@@ -18,6 +18,14 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
 
   // aria2 JSON-RPC Endpoint
   router.post('/', (req: Request, res: Response) => {
+    // Redact token and cookie values before logging
+    const redactedBody =
+      typeof req.body === 'string' ? req.body.replace(/token:[^"',\s\]]+/g, 'token:[REDACTED]') : req.body
+    const rawHeaders = req.headers
+    const redactedHeaders = { ...rawHeaders }
+    if (redactedHeaders['cookie']) redactedHeaders['cookie'] = '[REDACTED]'
+    logger.debug({ headers: redactedHeaders, rawBody: redactedBody }, 'Received raw JSON-RPC request')
+
     if (!req.body || typeof req.body !== 'string' || req.body.trim() === '') {
       logger.warn('req.body is empty or not text. Request may be completely empty.')
       return rpcError(res, null, -32700, 'Parse error: empty request')
@@ -27,13 +35,11 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
     try {
       parsedBody = JSON.parse(req.body) as JsonRpcPayload
     } catch {
-      logger.error('Failed to parse request body as JSON')
+      logger.error('Failed to parse request body as JSON. Raw body: ' + redactedBody)
       return rpcError(res, null, -32700, 'Parse error: Invalid JSON')
     }
 
     const { jsonrpc, id, method, params } = parsedBody
-
-    logger.debug({ method, id }, 'Received JSON-RPC request')
 
     if (jsonrpc !== '2.0' || !method) {
       return rpcError(res, id, -32600, 'Invalid Request')
