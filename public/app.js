@@ -87,7 +87,10 @@ createApp({
             alert('No pending requests to export!');
             return;
           }
-          downloadStringAsFile(data.text, 'aria2_downloads.txt');
+          const pad = (n) => String(n).padStart(2, '0');
+          const d = new Date();
+          const timestamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+          downloadStringAsFile(data.text, `aria2_${timestamp}.txt`);
           await fetchRequests();
         }
       } catch (err) {
