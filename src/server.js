@@ -44,6 +44,10 @@ const apiRouter = require('./api')(db, logger);
 app.use('/jsonrpc', jsonRpcRouter);
 app.use('/api', apiRouter);
 
-app.listen(port, () => {
-  logger.info("Aria2 Proxy listening on port " + port);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    logger.info("Aria2 Proxy listening on port " + port);
+  });
+}
+
+module.exports = app;
