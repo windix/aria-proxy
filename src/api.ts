@@ -50,8 +50,6 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
       return res.status(400).json({ error: 'ids must be "all_pending" or an array of ids' })
     }
 
-    const updateStmt = db.prepare("UPDATE requests SET status = 'exported' WHERE id = ?")
-
     let records: RequestRecord[] = []
 
     if (ids === 'all_pending') {
@@ -69,8 +67,11 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
 
     let exportText = ''
 
-    const exportTransaction = db.transaction((recs: RequestRecord[]) => {
-      for (const rec of recs) {
+    try {
+      const exportedIds: number[] = []
+
+      for (const rec of records) {
+        exportedIds.push(rec.id)
         exportText += rec.url + '\n'
 
         const opts = rec.options_json ? (JSON.parse(rec.options_json) as Aria2Options) : null
@@ -118,14 +119,15 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
             }
           }
         }
-
-        // Mark as exported
-        updateStmt.run(rec.id)
       }
-    })
 
-    try {
-      exportTransaction(records)
+      if (exportedIds.length > 0) {
+        const placeholders = exportedIds.map(() => '?').join(',')
+        db.prepare(`UPDATE requests SET status = 'exported' WHERE id IN (${placeholders})`).run(
+          ...exportedIds,
+        )
+      }
+
       res.json({ success: true, text: exportText })
     } catch (err) {
       logger.error(err)
