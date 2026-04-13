@@ -138,7 +138,9 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
   // API: Delete a single request by ID
   router.delete('/requests/:id', (req: Request, res: Response) => {
     try {
-      const info = db.prepare('DELETE FROM requests WHERE id = ?').run(req.params.id)
+      const info = db
+        .prepare("UPDATE requests SET status = 'deleted' WHERE id = ?")
+        .run(req.params.id)
       if (info.changes > 0) {
         res.json({ success: true })
       } else {
@@ -156,9 +158,9 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
     try {
       let info
       if (type === 'all') {
-        info = db.prepare('DELETE FROM requests').run()
+        info = db.prepare("UPDATE requests SET status = 'deleted'").run()
       } else {
-        info = db.prepare("DELETE FROM requests WHERE status = 'exported'").run()
+        info = db.prepare("UPDATE requests SET status = 'deleted' WHERE status = 'exported'").run()
       }
       res.json({ success: true, deletedCount: info.changes })
     } catch (err) {

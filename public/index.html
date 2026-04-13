@@ -165,8 +165,11 @@
                 <span v-if="req.status === 'pending'" class="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
                   Pending
                 </span>
-                <span v-else class="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <span v-else-if="req.status === 'exported'" class="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                   Exported
+                </span>
+                <span v-else class="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-red-500/15 text-red-400 border border-red-500/30">
+                  Deleted
                 </span>
               </td>
               
