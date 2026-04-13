@@ -1,4 +1,5 @@
 import express, { type Router, type Request, type Response } from 'express'
+import fs from 'fs'
 import path from 'path'
 import type { Logger } from 'pino'
 
@@ -176,6 +177,34 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
       commit: process.env.GIT_COMMIT || null,
       tag: process.env.GIT_TAG || null,
     })
+  })
+
+  // API: Get app settings and configuration rules
+  router.get('/settings', (_req: Request, res: Response) => {
+    try {
+      let rulesYaml: string | null = null
+
+      const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
+      if (fs.existsSync(rulesPath)) {
+        rulesYaml = fs.readFileSync(rulesPath, 'utf8')
+      }
+
+      // Get exact values to display natively in the dashboard due to secured basic auth.
+      const rpcSecretSet = !!process.env.ARIA2_RPC_SECRET
+      const rpcSecret = process.env.ARIA2_RPC_SECRET || null
+
+      const userAgentOverride = process.env.USER_AGENT || null
+
+      res.json({
+        rpcSecretSet,
+        rpcSecret,
+        userAgentOverride,
+        renameRulesYaml: rulesYaml,
+      })
+    } catch (err) {
+      logger.error(err, 'Failed to fetch settings')
+      res.status(500).json({ error: (err as Error).message })
+    }
   })
 
   return router

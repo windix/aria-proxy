@@ -75,8 +75,26 @@
       </div>
     </header>
 
-    <main class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <!-- Stats Cards -->
+    <!-- Tabs Navigation -->
+    <div class="flex gap-4 mb-8">
+      <button 
+        @click="currentTab = 'requests'" 
+        :class="['px-5 py-2.5 rounded-lg text-sm font-semibold transition-all transition-colors', currentTab === 'requests' ? 'bg-indigo-500 text-white shadow-[0_4px_14px_rgba(99,102,241,0.3)]' : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 backdrop-blur-xl']"
+      >
+        Requests
+      </button>
+      <button 
+        @click="currentTab = 'settings'" 
+        :class="['px-5 py-2.5 rounded-lg text-sm font-semibold transition-all transition-colors', currentTab === 'settings' ? 'bg-indigo-500 text-white shadow-[0_4px_14px_rgba(99,102,241,0.3)]' : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 backdrop-blur-xl']"
+      >
+        Settings & Configuration
+      </button>
+    </div>
+
+    <!-- REQUESTS TAB -->
+    <div v-show="currentTab === 'requests'">
+      <main class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Stats Cards -->
       <div class="bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl hover:-translate-y-1 transition-transform">
         <div class="text-xs text-slate-400 uppercase tracking-widest mb-2 font-semibold">Pending Links</div>
         <div class="text-4xl font-bold text-white">{{ pendingCount }}</div>
@@ -167,6 +185,68 @@
         </table>
       </div>
     </div>
+    </div> <!-- END REQUESTS TAB -->
+
+    <!-- SETTINGS TAB -->
+    <div v-show="currentTab === 'settings'" class="grid grid-cols-1 md:grid-cols-2 gap-6" style="display: none;">
+      
+      <!-- Environment Config Card -->
+      <div class="bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-full">
+        <div class="p-6 border-b border-white/10 bg-black/20">
+          <h2 class="text-xl font-bold text-white flex items-center gap-3">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Environment Settings
+          </h2>
+          <p class="text-slate-400 text-sm mt-2">Core proxy configuration supplied via env variables.</p>
+        </div>
+        
+        <div class="p-6 flex flex-col gap-6 flex-grow">
+          <div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider mb-2 font-semibold">ARIA2_RPC_SECRET</div>
+            <div v-if="settings.rpcSecretSet" class="flex items-center gap-3 bg-black/30 p-3 rounded-lg border border-white/5">
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-md border border-emerald-500/20 uppercase tracking-widest"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> SECURED</span>
+              <code class="text-slate-300 font-mono tracking-wider">{{ settings.rpcSecret }}</code>
+            </div>
+            <div v-else class="flex items-center gap-3 bg-red-900/10 p-3 rounded-lg border border-red-500/20">
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-md border border-red-500/20 uppercase tracking-widest">UNSECURED</span>
+              <span class="text-slate-400 text-sm italic">No secret token configured.</span>
+            </div>
+          </div>
+          
+          <div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider mb-2 font-semibold">USER_AGENT</div>
+            <div v-if="settings.userAgentOverride" class="bg-black/30 p-3 rounded-lg border border-white/5">
+              <code class="text-indigo-300 font-mono text-sm break-all">{{ settings.userAgentOverride }}</code>
+            </div>
+            <div v-else class="bg-black/30 p-3 rounded-lg border border-white/5">
+              <span class="text-slate-400 text-sm italic">Preserving original browser User-Agents.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rename Rules Card -->
+      <div class="bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-full">
+        <div class="p-6 border-b border-white/10 bg-black/20">
+          <h2 class="text-xl font-bold text-white flex items-center gap-3">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            Automated Rename Rules
+          </h2>
+          <p class="text-slate-400 text-sm mt-2">Current configuration loaded from <code>data/rename-rules.yaml</code>. Modify this file directly to update.</p>
+        </div>
+        
+        <div class="p-6 flex flex-col flex-grow bg-black/40">
+          <pre v-if="settings.renameRulesYaml" class="text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre p-4 rounded-xl border border-white/5 bg-slate-900/80 shadow-inner block leading-relaxed h-full"><code v-html="settings.renameRulesYaml"></code></pre>
+          <div v-else class="flex flex-col items-center justify-center flex-grow py-12 text-center text-slate-500 border-2 border-dashed border-white/10 rounded-xl bg-slate-900/50">
+            <svg class="mb-3 opacity-50" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M16 13H8M16 17H8M10 9H8"/></svg>
+            <p>No <code>rename-rules.yaml</code> found</p>
+            <p class="text-xs mt-1">Place configuration in the data directory.</p>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    <!-- END SETTINGS TAB -->
     
   <!-- Footer -->
   <footer v-if="version.commit || version.tag" class="mt-8 mb-4 text-center">

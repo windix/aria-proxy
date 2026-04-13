@@ -6,7 +6,7 @@
     "start": "node dist/server.js",
     "dev": "bun src/server.ts",
     "build": "tsc",
-    "test": "NODE_ENV=test jest --runInBand",
+    "test": "jest --runInBand",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts' '*.json' '*.mjs'",
     "postversion": "git push --follow-tags"
@@ -21,7 +21,8 @@
     "dotenv": "^16.4.7",
     "express": "^5.2.1",
     "pino": "^9.0.0",
-    "pino-pretty": "^11.0.0"
+    "pino-pretty": "^11.0.0",
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
@@ -43,6 +44,7 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
+    "setupFiles": ["<rootDir>/tests/setup.ts"],
     "testMatch": [
       "**/tests/**/*.test.ts"
     ],

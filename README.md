@@ -14,6 +14,7 @@ Built with **TypeScript**, **Express 5**, and **Bun** (dev runtime). Provides a 
 - **Global User-Agent Override**: Optionally force all exports to use a specific `User-Agent` via `USER_AGENT` environment variable.
 - **Premium Web Dashboard**: Glassmorphism dark-mode UI built with Vue 3 CDN — no build step required. Auto-refreshes every 2.5 s and supports inline header inspection per request.
 - **One-Click Export**: Exports all pending requests into a properly formatted `aria2c` multi-URL input file for batch downloading.
+- **Automated Rename Rules**: Optional string replacements applied transparently to the filename based on `data/rename-rules.yaml`.
 
 ## Tech Stack
 
@@ -63,6 +64,19 @@ Built with **TypeScript**, **Express 5**, and **Bun** (dev runtime). Provides a 
    ```
    The proxy silently intercepts every `aria2.addUri` call and stores it.
 
+## Automated Rename Rules
+
+You can apply automated text replacements to incoming output filenames by creating a `rename-rules.yaml` file inside the `data/` directory.
+
+The file should be a YAML array containing pairs of strings `["TARGET", "REPLACEMENT"]`:
+
+```yaml
+# You can include comments!
+- ["EXAMPLE-TO-REMOVE-", ""]
+```
+
+When a new download request is received, the proxy evaluates the `out` parameter against these rules. If any string matches a target, it automatically replaces ALL occurrences of the target with the corresponding replacement string. If a rule produces an empty or invalid filename, it is safely ignored.
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -70,6 +84,8 @@ Built with **TypeScript**, **Express 5**, and **Bun** (dev runtime). Provides a 
 | `PORT` | `6800` | Port the proxy listens on |
 | `ARIA2_RPC_SECRET` | *(unset)* | If set, all RPC requests must include `token:<secret>` |
 | `USER_AGENT` | *(unset)* | If set, overrides the User-Agent on all exported requests |
+| `UI_USERNAME` | `hello` | Username for accessing the Dashboard and `/api` natively |
+| `UI_PASSWORD` | `world` | Password for accessing the Dashboard and `/api` natively |
 | `LOG_LEVEL` | `debug` | Pino log level (`trace` / `debug` / `info` / `warn` / `error`) |
 
 ## NPM Scripts

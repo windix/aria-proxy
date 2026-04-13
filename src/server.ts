@@ -36,10 +36,31 @@ app.use('/jsonrpc', express.text({ type: '*/*' }))
 // For all UI endpoints (/api/*), parse standard JSON properly!
 app.use('/api', express.json())
 
-app.use(express.static(path.join(__dirname, '../public')))
-
 // Modular Routers
 app.use('/jsonrpc', createJsonRpcRouter(db, logger))
+
+// UI and API Basic Authentication
+const UI_USERNAME = process.env.UI_USERNAME
+const UI_PASSWORD = process.env.UI_PASSWORD
+
+if (!UI_USERNAME || !UI_PASSWORD) {
+  logger.fatal('Missing required environment variables: UI_USERNAME and UI_PASSWORD')
+  process.exit(1)
+}
+
+app.use((req, res, next) => {
+  const b64auth = (req.headers.authorization || '').split(' ')[1] || ''
+  const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':')
+
+  if (login && password && login === UI_USERNAME && password === UI_PASSWORD) {
+    return next()
+  }
+
+  res.set('WWW-Authenticate', 'Basic realm="401"')
+  res.status(401).send('Authentication required.')
+})
+
+app.use(express.static(path.join(__dirname, '../public')))
 app.use('/api', createApiRouter(db, logger))
 
 if (require.main === module) {

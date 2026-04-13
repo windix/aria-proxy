@@ -13,6 +13,7 @@ When interacting with this repository, please adhere to the following architectu
 - **Dev Runtime**: The development server runs on **Bun** via `npm run dev` (`bun src/server.ts`).
   - Bun must be installed separately: `curl -fsSL https://bun.sh/install | bash`
   - Bun is only used for the dev script — **tests and builds still use Node + npm**.
+- **Target OS**: The code is meant to be Linux / OS X only. Do not introduce Windows support libraries or compatibility tools (such as `cross-env`).
 - **Language**: All backend source files are **TypeScript** (`.ts`). Never add new `.js` files under `src/` or `tests/`.
 
 ## 2. Frontend Constraints (Vue & Tailwind)
@@ -56,3 +57,11 @@ When interacting with this repository, please adhere to the following architectu
   - `devDependencies` — TypeScript, ts-jest, Jest, ESLint, Prettier, type stubs (`@types/*`).
 - `better-sqlite3` stays in `dependencies` (needed for the Node.js production runtime).
 - `bun:sqlite` is a Bun built-in — do **not** add it as an npm dependency.
+
+## 6. Testing
+
+- When doing bug fix, please add a corresponding unit test to confirm / replicate the issue, then make sure the fix would pass the test.
+
+## 7. Documentation
+
+- **Bilingual Documentation**: Whenever `README.md` is updated, please ensure `README_zh.md` is also symmetrically updated to reflect the changes in Chinese.

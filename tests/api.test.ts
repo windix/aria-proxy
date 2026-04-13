@@ -1,6 +1,8 @@
 import request from 'supertest'
 import app from '../src/server'
 import db from '../src/db'
+import fs from 'fs'
+import path from 'path'
 
 describe('Dashboard Database API', () => {
   beforeEach(() => {
@@ -18,7 +20,7 @@ describe('Dashboard Database API', () => {
       'pending',
     )
 
-    const res = await request(app).get('/api/requests')
+    const res = await request(app).get('/api/requests').auth('hello', 'world')
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(1)
     expect(res.body[0].url).toBe('http://foo.com/bar')
@@ -32,7 +34,10 @@ describe('Dashboard Database API', () => {
       JSON.stringify({ out: 'test.bin', header: 'Custom: test' }),
     )
 
-    const res = await request(app).post('/api/requests/export').send({ ids: 'all_pending' })
+    const res = await request(app)
+      .post('/api/requests/export')
+      .send({ ids: 'all_pending' })
+      .auth('hello', 'world')
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
@@ -51,7 +56,10 @@ describe('Dashboard Database API', () => {
       JSON.stringify({ dir: '/absolute/downloads/movies' }),
     )
 
-    const res = await request(app).post('/api/requests/export').send({ ids: 'all_pending' })
+    const res = await request(app)
+      .post('/api/requests/export')
+      .send({ ids: 'all_pending' })
+      .auth('hello', 'world')
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
@@ -69,10 +77,60 @@ describe('Dashboard Database API', () => {
     }
     expect(current.count).toBe(1)
 
-    const res = await request(app).post('/api/requests/clear-all')
+    const res = await request(app).post('/api/requests/clear-all').auth('hello', 'world')
     expect(res.status).toBe(200)
 
     current = db.prepare('SELECT count(*) as count FROM requests').get() as { count: number }
     expect(current.count).toBe(0)
+  })
+
+  describe('GET /settings', () => {
+    it('returns configuration states and masks secret', async () => {
+      process.env.ARIA2_RPC_SECRET = 'supersecret123'
+      process.env.USER_AGENT = 'Custom/1.0'
+
+      const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
+      const rulesContent = '# test\n- ["A", "B"]'
+
+      fs.mkdirSync(path.dirname(rulesPath), { recursive: true })
+      fs.writeFileSync(rulesPath, rulesContent)
+
+      try {
+        const res = await request(app).get('/api/settings').auth('hello', 'world')
+        expect(res.status).toBe(200)
+        expect(res.body.rpcSecretSet).toBe(true)
+        expect(res.body.rpcSecret).toBe('supersecret123')
+        expect(res.body.userAgentOverride).toBe('Custom/1.0')
+        expect(res.body.renameRulesYaml).toBe(rulesContent)
+      } finally {
+        delete process.env.ARIA2_RPC_SECRET
+        delete process.env.USER_AGENT
+        if (fs.existsSync(rulesPath)) {
+          fs.unlinkSync(rulesPath)
+        }
+      }
+    })
+
+    it('returns nulls when things are not set', async () => {
+      const oldSecret = process.env.ARIA2_RPC_SECRET
+      const oldAgent = process.env.USER_AGENT
+      delete process.env.ARIA2_RPC_SECRET
+      delete process.env.USER_AGENT
+
+      const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
+      if (fs.existsSync(rulesPath)) fs.unlinkSync(rulesPath)
+
+      try {
+        const res = await request(app).get('/api/settings').auth('hello', 'world')
+        expect(res.status).toBe(200)
+        expect(res.body.rpcSecretSet).toBe(false)
+        expect(res.body.rpcSecret).toBeNull()
+        expect(res.body.userAgentOverride).toBeNull()
+        expect(res.body.renameRulesYaml).toBeNull()
+      } finally {
+        if (oldSecret !== undefined) process.env.ARIA2_RPC_SECRET = oldSecret
+        if (oldAgent !== undefined) process.env.USER_AGENT = oldAgent
+      }
+    })
   })
 })

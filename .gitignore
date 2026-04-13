@@ -14,11 +14,11 @@ pids
 *.seed
 *.pid.lock
 
+.env
+
 # Database
-data/requests.sqlite
-data/requests.sqlite-journal
-data/requests.sqlite-shm
-data/requests.sqlite-wal
+data/*.sqlite*
+data/*.yaml
 
 # Dependency directories
 node_modules/
@@ -30,4 +30,5 @@ jspm_packages/
 # macOS
 .DS_Store
 
-.env
+# vscode
+.vscode/
