@@ -6,6 +6,7 @@ createApp({
     const requests = ref([]);
     const refreshTimer = ref(null);
     const expandedHeaders = ref({}); // Maps request IDs to boolean for dropdown state
+    const version = ref({ commit: null, tag: null });
 
     // Computed
     const pendingCount = computed(() => {
@@ -116,9 +117,16 @@ createApp({
     };
 
     // Lifecycle
-    onMounted(() => {
+    onMounted(async () => {
       fetchRequests();
-      
+
+      try {
+        const res = await fetch('/api/version');
+        version.value = await res.json();
+      } catch (err) {
+        console.error('Failed to fetch version:', err);
+      }
+
       // Auto-refresh every 2.5 seconds, paused automatically if any dropdown is open.
       refreshTimer.value = setInterval(() => {
         if (Object.keys(expandedHeaders.value).length === 0) {
@@ -140,6 +148,7 @@ createApp({
       pendingCount,
       exportedCount,
       totalCount,
+      version,
       fetchRequests,
       toggleHeaders,
       formatDate,

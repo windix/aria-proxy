@@ -121,6 +121,66 @@ Feed it directly to aria2:
 aria2c -i aria2_downloads.txt
 ```
 
+## Docker
+
+Pre-built multi-arch images (`linux/amd64` and `linux/arm64`) are published to GitHub Container Registry on every push to `main` and on version tags.
+
+```bash
+docker pull ghcr.io/windix/aria-proxy:main
+```
+
+**Run with Docker:**
+
+```bash
+docker run -d \
+  -p 6800:6800 \
+  -e ARIA2_RPC_SECRET=your_secret \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/windix/aria-proxy:main
+```
+
+**Build locally (single arch, loads into local Docker daemon):**
+
+```bash
+docker buildx build \
+  --platform linux/amd64 \
+  --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) \
+  --build-arg GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || true) \
+  -t aria-proxy --load .
+```
+
+**Build locally for multiple architectures (requires pushing to a registry):**
+
+```bash
+# One-time setup: create a buildx builder with multi-arch support
+docker buildx create --name multiarch --use
+docker buildx inspect --bootstrap
+
+# Build and push
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/windix/aria-proxy:latest \
+  --push .
+```
+
+## Releasing
+
+Use the built-in `npm version` command — it bumps `package.json`, commits, tags, and the `postversion` hook pushes everything to GitHub in one step (which triggers the Docker image build in CI):
+
+```bash
+npm version patch   # 1.0.0 → 1.0.1  (bug fixes)
+npm version minor   # 1.0.0 → 1.1.0  (new features)
+npm version major   # 1.0.0 → 2.0.0  (breaking changes)
+npm version 1.2.3   # set a specific version
+```
+
+To delete a tag and re-release if something went wrong:
+
+```bash
+git tag -d v1.2.3
+git push origin --delete v1.2.3
+```
+
 ## Development
 
 ```bash

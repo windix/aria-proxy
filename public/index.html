@@ -168,6 +168,16 @@
       </div>
     </div>
     
+  <!-- Footer -->
+  <footer v-if="version.commit || version.tag" class="mt-8 mb-4 text-center">
+    <span class="inline-flex items-center gap-2 text-xs text-slate-500 font-mono">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"></line><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"></line><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"></line></svg>
+      <span v-if="version.tag">{{ version.tag }}</span>
+      <span v-if="version.tag && version.commit" class="text-slate-600">·</span>
+      <span v-if="version.commit">{{ version.commit }}</span>
+    </span>
+  </footer>
+
   </div>
 
   <script src="app.js"></script>

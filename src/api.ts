@@ -170,5 +170,13 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
     }
   })
 
+  // API: Build version info (commit hash + optional tag, injected at Docker build time)
+  router.get('/version', (_req: Request, res: Response) => {
+    res.json({
+      commit: process.env.GIT_COMMIT || null,
+      tag: process.env.GIT_TAG || null,
+    })
+  })
+
   return router
 }

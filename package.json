@@ -8,7 +8,8 @@
     "build": "tsc",
     "test": "NODE_ENV=test jest --runInBand",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
-    "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts' '*.json' '*.mjs'"
+    "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts' '*.json' '*.mjs'",
+    "postversion": "git push --follow-tags"
   },
   "keywords": [],
   "author": "",

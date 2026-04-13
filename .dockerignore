@@ -1,0 +1,15 @@
+node_modules/
+dist/
+data/
+.env
+.env.*
+!.env.example
+.git/
+.gitignore
+*.log
+tests/
+*.md
+
+.nvmrc
+eslint.config.mjs
+tsconfig.test.json
