@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
@@ -43,16 +44,11 @@ db.exec(`
     url TEXT NOT NULL,
     out_filename TEXT,
     headers TEXT,
+    options_json TEXT,
     status TEXT DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
-
-try {
-  db.exec('ALTER TABLE requests ADD COLUMN options_json TEXT');
-} catch (e) {
-  // Ignore if column already exists
-}
 
 // Helper to handle RPC errors
 const rpcError = (res, id, code, message) => {
@@ -81,13 +77,26 @@ app.post('/jsonrpc', (req, res) => {
   }
 
   const { jsonrpc, id, method, params } = parsedBody;
-  
+
   if (jsonrpc !== '2.0' || !method) {
     return rpcError(res, id, -32600, 'Invalid Request');
   }
 
+  // --- OPTIONAL RPC SECRET CHECK ---
+  let isTokenPresent = false;
+  if (Array.isArray(params) && params.length > 0 && typeof params[0] === 'string' && params[0].startsWith('token:')) {
+    isTokenPresent = true;
+    const providedSecret = params[0].substring(6);
+    if (process.env.ARIA2_RPC_SECRET && providedSecret !== process.env.ARIA2_RPC_SECRET) {
+      logger.warn(`Unauthorized request rejected: Invalid RPC Secret`);
+      return rpcError(res, id, 1, 'Unauthorized');
+    }
+  } else if (process.env.ARIA2_RPC_SECRET) {
+    logger.warn(`Unauthorized request rejected: Missing RPC Secret`);
+    return rpcError(res, id, 1, 'Unauthorized');
+  }
+
   if (method === 'aria2.addUri') {
-    let token = '';
     let uris = [];
     let options = {};
 
@@ -95,42 +104,42 @@ app.post('/jsonrpc', (req, res) => {
       return rpcError(res, id, -32602, 'Invalid params');
     }
 
-    // Determine if token is used
-    if (typeof params[0] === 'string' && params[0].startsWith('token:')) {
-      token = params[0];
+    if (isTokenPresent) {
       uris = params[1] || [];
       options = params[2] || {};
-    } else if (Array.isArray(params[0])) {
-      uris = params[0];
-      options = params[1] || {};
     } else {
-      return rpcError(res, id, -32602, 'Invalid params');
+      uris = params[0] || [];
+      options = params[1] || {};
     }
 
     // --- NORMALIZATION AND OVERRIDES ---
-    const overrideUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36";
     let customHeaders = Array.isArray(options.header) ? options.header : (options.header ? [options.header] : []);
     
     let originalReferer = null;
     let originalCookie = null;
+    let originalUserAgent = null;
 
     // Clear out any existing user-agent/referer/cookie from the payload header array to prevent duplicates
     let finalHeaders = customHeaders.filter(h => {
       const lower = h.toLowerCase();
       if (lower.startsWith('referer:')) originalReferer = h.substring(8).trim();
       if (lower.startsWith('cookie:')) originalCookie = h.substring(7).trim();
+      if (lower.startsWith('user-agent:')) originalUserAgent = h.substring(11).trim();
       return !lower.startsWith('user-agent:') && !lower.startsWith('referer:') && !lower.startsWith('cookie:');
     });
 
     // Extract from HTTP headers, explicit options payload, or the ones we just extracted from options.header
     const referer = req.headers['referer'] || options['referer'] || originalReferer;
     if (referer) finalHeaders.push('Referer: ' + referer);
-    
+
     const cookie = req.headers['cookie'] || options['cookie'] || originalCookie;
     if (cookie) finalHeaders.push('Cookie: ' + cookie);
 
-    // Force override User-Agent
-    finalHeaders.push('User-Agent: ' + overrideUA);
+    // Override User-Agent ONLY if process.env.USER_AGENT is set, otherwise preserve incoming
+    const userAgent = process.env.USER_AGENT || req.headers['user-agent'] || options['user-agent'] || originalUserAgent;
+    if (userAgent) {
+      finalHeaders.push('User-Agent: ' + userAgent);
+    }
 
     // Reassign normalized headers and drop bare options
     options.header = finalHeaders;
@@ -142,7 +151,7 @@ app.post('/jsonrpc', (req, res) => {
     // Process each URI (though typically there's only one per addUri call)
     let processed = 0;
     const stmt = db.prepare('INSERT INTO requests (url, out_filename, headers, options_json) VALUES (?, ?, ?, ?)');
-    
+
     // We run the inserts in a transaction for safety
     const insertMany = db.transaction((uris) => {
       for (const uri of uris) {
@@ -193,19 +202,19 @@ app.get('/api/requests', (req, res) => {
     const status = req.query.status;
     let query = 'SELECT * FROM requests ORDER BY created_at DESC';
     let results = [];
-    
+
     if (status) {
       results = db.prepare('SELECT * FROM requests WHERE status = ? ORDER BY created_at DESC').all(status);
     } else {
       results = db.prepare(query).all();
     }
-    
+
     // Parse headers back to array for UI
     results = results.map(r => ({
       ...r,
       headers: JSON.parse(r.headers || '[]')
     }));
-    
+
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -215,12 +224,12 @@ app.get('/api/requests', (req, res) => {
 // API: Export requests (marks as exported and returns the raw string)
 app.post('/api/requests/export', (req, res) => {
   const { ids } = req.body; // array of ids, or 'all_pending'
-  
+
   const getStmt = db.prepare('SELECT * FROM requests WHERE id = ?');
   const updateStmt = db.prepare("UPDATE requests SET status = 'exported' WHERE id = ?");
-  
+
   let records = [];
-  
+
   if (ids === 'all_pending') {
     records = db.prepare("SELECT * FROM requests WHERE status = 'pending' ORDER BY created_at ASC").all();
   } else if (Array.isArray(ids)) {
@@ -234,9 +243,9 @@ app.post('/api/requests/export', (req, res) => {
   const exportTransaction = db.transaction((records) => {
     for (const rec of records) {
       exportText += rec.url + "\n";
-      
+
       const opts = rec.options_json ? JSON.parse(rec.options_json) : null;
-      
+
       if (!opts) {
         // Fallback for older items missing options_json
         const headers = JSON.parse(rec.headers || '[]');
@@ -269,7 +278,7 @@ app.post('/api/requests/export', (req, res) => {
           }
         }
       }
-      
+
       // Mark as exported
       updateStmt.run(rec.id);
     }
