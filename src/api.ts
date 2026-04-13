@@ -88,22 +88,29 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
           // Iterate all provided options
           for (const [key, val] of Object.entries(opts)) {
             if (key === 'header') {
-              const hs = Array.isArray(val) ? (val as string[]) : [val as string]
+              // Only emit entries that are actually strings; skip malformed non-string values
+              const hs = Array.isArray(val)
+                ? val.filter((h): h is string => typeof h === 'string')
+                : typeof val === 'string'
+                  ? [val]
+                  : []
               for (const h of hs) {
                 exportText += ' header=' + h + '\n'
               }
             } else if (key === 'out') {
-              let outVal = val as string
+              if (typeof val !== 'string') continue
+              let outVal = val
               // Prepend relative directory name if present
-              if (opts['dir']) {
-                const lastFolder = path.basename(opts['dir'] as string)
+              const dirVal = opts['dir']
+              if (typeof dirVal === 'string') {
+                const lastFolder = path.basename(dirVal)
                 if (lastFolder) outVal = lastFolder + '/' + outVal
               }
               exportText += ' out=' + outVal + '\n'
             } else if (key === 'dir') {
               // If 'out' is missing, ensure 'dir' isn't lost
-              if (!opts['out']) {
-                const lastFolder = path.basename(val as string)
+              if (!opts['out'] && typeof val === 'string') {
+                const lastFolder = path.basename(val)
                 if (lastFolder) exportText += ' dir=' + lastFolder + '\n'
               }
             } else {
