@@ -1,4 +1,6 @@
 import express, { type Router, type Request, type Response } from 'express'
+import fs from 'fs'
+import path from 'path'
 import type { Logger } from 'pino'
 
 import type { DB, Aria2Options, JsonRpcPayload } from './types'
@@ -20,11 +22,16 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
   router.post('/', (req: Request, res: Response) => {
     // Redact token and cookie values before logging
     const redactedBody =
-      typeof req.body === 'string' ? req.body.replace(/token:[^"',\s\]]+/g, 'token:[REDACTED]') : req.body
+      typeof req.body === 'string'
+        ? req.body.replace(/token:[^"',\s\]]+/g, 'token:[REDACTED]')
+        : req.body
     const rawHeaders = req.headers
     const redactedHeaders = { ...rawHeaders }
     if (redactedHeaders['cookie']) redactedHeaders['cookie'] = '[REDACTED]'
-    logger.debug({ headers: redactedHeaders, rawBody: redactedBody }, 'Received raw JSON-RPC request')
+    logger.debug(
+      { headers: redactedHeaders, rawBody: redactedBody },
+      'Received raw JSON-RPC request',
+    )
 
     if (!req.body || typeof req.body !== 'string' || req.body.trim() === '') {
       logger.warn('req.body is empty or not text. Request may be completely empty.')
@@ -126,6 +133,50 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
       delete options['referer']
       delete options['cookie']
       // --- END NORMALIZATION ---
+
+      // --- AUTOMATED RENAME ---
+      if (options.out) {
+        try {
+          const rulesPath = path.join(__dirname, '../data/rename-rules.json')
+          if (fs.existsSync(rulesPath)) {
+            const content = fs.readFileSync(rulesPath, 'utf8')
+            const rules = JSON.parse(content)
+            if (Array.isArray(rules)) {
+              let newOut = options.out
+              let modified = false
+
+              for (const rule of rules) {
+                if (Array.isArray(rule) && rule.length >= 2) {
+                  const target = String(rule[0])
+                  const replacement = String(rule[1])
+                  if (target) {
+                    newOut = newOut.split(target).join(replacement)
+                    modified = true
+                  }
+                }
+              }
+
+              if (modified) {
+                if (newOut.trim() !== '') {
+                  options.out = newOut
+                  logger.debug(
+                    { original: options.out, new: newOut },
+                    'Applied rename rules to filename',
+                  )
+                } else {
+                  logger.warn(
+                    { out: options.out },
+                    'Rename rules resulted in empty filename, ignoring.',
+                  )
+                }
+              }
+            }
+          }
+        } catch (err) {
+          logger.error(err, 'Failed to process rename rules')
+        }
+      }
+      // --- END AUTOMATED RENAME ---
 
       const stmt = db.prepare(
         'INSERT INTO requests (url, out_filename, headers, options_json) VALUES (?, ?, ?, ?)',
