@@ -16,15 +16,12 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
 
       if (status && typeof status === 'string') {
         results = db
-          .prepare<
-            [string],
-            RequestRecord
-          >('SELECT * FROM requests WHERE status = ? ORDER BY created_at DESC')
+          .prepare<RequestRecord>(
+            'SELECT * FROM requests WHERE status = ? ORDER BY created_at DESC',
+          )
           .all(status)
       } else {
-        results = db
-          .prepare<[], RequestRecord>('SELECT * FROM requests ORDER BY created_at DESC')
-          .all()
+        results = db.prepare<RequestRecord>('SELECT * FROM requests ORDER BY created_at DESC').all()
       }
 
       // Parse headers JSON string back to array for the UI
@@ -52,17 +49,16 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
       return res.status(400).json({ error: 'ids must be "all_pending" or an array of ids' })
     }
 
-    const getStmt = db.prepare<[number], RequestRecord>('SELECT * FROM requests WHERE id = ?')
+    const getStmt = db.prepare<RequestRecord>('SELECT * FROM requests WHERE id = ?')
     const updateStmt = db.prepare("UPDATE requests SET status = 'exported' WHERE id = ?")
 
     let records: RequestRecord[] = []
 
     if (ids === 'all_pending') {
       records = db
-        .prepare<
-          [],
-          RequestRecord
-        >("SELECT * FROM requests WHERE status = 'pending' ORDER BY created_at ASC")
+        .prepare<RequestRecord>(
+          "SELECT * FROM requests WHERE status = 'pending' ORDER BY created_at ASC",
+        )
         .all()
     } else if (Array.isArray(ids)) {
       for (const id of ids as number[]) {

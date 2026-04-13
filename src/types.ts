@@ -1,7 +1,17 @@
-import type Database from 'better-sqlite3'
+/** Minimal DB interface covering the synchronous SQLite API used in this project.
+ *  Compatible with both better-sqlite3 (Node.js) and bun:sqlite (Bun). */
+export interface Statement<Result = unknown> {
+  all(...params: unknown[]): Result[]
+  get(...params: unknown[]): Result | undefined
+  run(...params: unknown[]): { changes: number; lastInsertRowid: number | bigint }
+}
 
-// Re-export the DB instance type for use in factory function signatures
-export type DB = InstanceType<typeof Database>
+export interface DB {
+  prepare<Result = unknown>(sql: string): Statement<Result>
+  exec(sql: string): void
+  transaction<T extends unknown[]>(fn: (...args: T) => void): (...args: T) => void
+  close(): void
+}
 
 /** Shape of a row in the `requests` table */
 export interface RequestRecord {
