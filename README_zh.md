@@ -165,12 +165,13 @@ docker buildx build \
 
 ## 发布版本
 
-推送 semver 标签会触发 GitHub Actions 构建，并将带版本号的镜像发布到 GHCR（例如 `ghcr.io/windix/aria-proxy:1.2.3` 和 `ghcr.io/windix/aria-proxy:1.2`）。标签名称也会嵌入到镜像中并显示在仪表盘底部。
+使用内置的 `npm version` 命令——它会自动更新 `package.json`、提交、打标签，并通过 `postversion` 钩子一步完成推送（同时触发 CI 中的 Docker 镜像构建）：
 
 ```bash
-# 先在 package.json 中更新版本号，然后：
-git tag v1.2.3
-git push origin v1.2.3
+npm version patch   # 1.0.0 → 1.0.1  （修复 bug）
+npm version minor   # 1.0.0 → 1.1.0  （新功能）
+npm version major   # 1.0.0 → 2.0.0  （破坏性变更）
+npm version 1.2.3   # 指定具体版本号
 ```
 
 如需删除标签并重新发布：

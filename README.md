@@ -165,12 +165,13 @@ docker buildx build \
 
 ## Releasing
 
-Pushing a semver tag triggers a GitHub Actions build that publishes versioned images to GHCR (e.g. `ghcr.io/windix/aria-proxy:1.2.3` and `ghcr.io/windix/aria-proxy:1.2`). The git tag name is also embedded into the image and shown in the dashboard footer.
+Use the built-in `npm version` command — it bumps `package.json`, commits, tags, and the `postversion` hook pushes everything to GitHub in one step (which triggers the Docker image build in CI):
 
 ```bash
-# Bump the version in package.json first, then:
-git tag v1.2.3
-git push origin v1.2.3
+npm version patch   # 1.0.0 → 1.0.1  (bug fixes)
+npm version minor   # 1.0.0 → 1.1.0  (new features)
+npm version major   # 1.0.0 → 2.0.0  (breaking changes)
+npm version 1.2.3   # set a specific version
 ```
 
 To delete a tag and re-release if something went wrong:
