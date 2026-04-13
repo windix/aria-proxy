@@ -13,6 +13,7 @@ When interacting with this repository, please adhere to the following architectu
 - **Dev Runtime**: The development server runs on **Bun** via `npm run dev` (`bun src/server.ts`).
   - Bun must be installed separately: `curl -fsSL https://bun.sh/install | bash`
   - Bun is only used for the dev script — **tests and builds still use Node + npm**.
+- **Target OS**: The code is meant to be Linux / OS X only. Do not introduce Windows support libraries or compatibility tools (such as `cross-env`).
 - **Language**: All backend source files are **TypeScript** (`.ts`). Never add new `.js` files under `src/` or `tests/`.
 
 ## 2. Frontend Constraints (Vue & Tailwind)
