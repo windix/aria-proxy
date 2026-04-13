@@ -56,3 +56,11 @@ When interacting with this repository, please adhere to the following architectu
   - `devDependencies` — TypeScript, ts-jest, Jest, ESLint, Prettier, type stubs (`@types/*`).
 - `better-sqlite3` stays in `dependencies` (needed for the Node.js production runtime).
 - `bun:sqlite` is a Bun built-in — do **not** add it as an npm dependency.
+
+## 6. Testing
+
+- When doing bug fix, please add a corresponding unit test to confirm / replicate the issue, then make sure the fix would pass the test.
+
+## 7. Documentation
+
+- **Bilingual Documentation**: Whenever `README.md` is updated, please ensure `README_zh.md` is also symmetrically updated to reflect the changes in Chinese.
