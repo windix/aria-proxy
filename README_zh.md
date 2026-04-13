@@ -2,18 +2,32 @@
 
 [English](README.md) | 中文
 
-一个基于 Node.js 的代理服务器，可优雅地拦截 `aria2.addUri` JSON-RPC 请求，将下载链接及其相关的配置参数（如自定义请求头、Cookie 和输出路径）保存到本地的 SQLite 数据库中，而不是直接执行下载任务！
+一个代理服务器，可优雅地拦截 `aria2.addUri` JSON-RPC 请求，将下载链接及其完整的配置参数（自定义请求头、Cookie、输出路径等）持久化存储至本地 SQLite 数据库，而非直接执行下载任务。
 
-此服务提供了一个完全响应式的 **Vue.js 3** 和 **Tailwind CSS v4** 现代化 Web UI，让您随时监控已捕获的请求，并以一键导出的方式生成标准的 `aria2c -i` 批量下载文本文件。非常适合用于捕获并转发由浏览器扩展程序生成的重型跨站下载请求！
+使用 **TypeScript**、**Express 5** 和 **Bun**（开发运行时）构建。提供基于 **Vue.js 3** 与 **Tailwind CSS v4** 的响应式 Web UI，可随时监控已捕获的请求，并一键导出为标准 `aria2c -i` 批量下载文件。非常适合用于捕获并转发由浏览器扩展程序生成的跨站下载请求。
 
 ## 特性
 
-- **JSON-RPC 拦截**: 在 `/jsonrpc` 端口进行监听（原生模拟 Aria2 节点），无缝捕获原始链接及其附带的复杂配置参数。
-- **RPC 授权保护**: 完全支持标准的 Aria2 RPC Secret 密钥机制！您可以通过配置环境变量来进行严格的密码验证。
-- **智能请求头规范化**: 能够穿透严格的 CORS 跨域封锁，精准提取被封装在 JSON 载荷中的 `User-Agent`、`Referer` 和 `Cookie` 值。
-- **全局 User-Agent 覆盖**: 提供可选项，以便在导出时强制为所有下载任务应用统一设定的全局 `User-Agent` 规则。
-- **现代化可视化仪表盘**: 使用 Vue 3 CDN 动态构建的极具质感的毛玻璃 (Glassmorphism) UI。无需经历繁琐的构建流程，即可享受基于定时器自动刷新的请求监控与参数检查体验。
-- **一键批量导出**: 一键将所有尚未处理的请求收集处理，完美映射并输出成严谨的 `aria2c` 多行格式下载输入文件！
+- **JSON-RPC 拦截**: 在 `/jsonrpc` 端点监听（模拟 Aria2 节点），无缝捕获原始链接及其附带的完整配置参数。
+- **RPC 授权保护**: 完整支持标准 Aria2 RPC Secret 密钥机制，通过设置 `ARIA2_RPC_SECRET` 环境变量即可强制要求鉴权。
+- **智能请求头规范化**: 能够穿透严格的 CORS 跨域限制，精准提取 JSON 载荷中的 `User-Agent`、`Referer` 和 `Cookie`，并在存储前完成去重处理。
+- **全局 User-Agent 覆盖**: 通过 `USER_AGENT` 环境变量，可选地为所有导出任务强制应用统一的 `User-Agent`。
+- **现代化可视化仪表盘**: 基于 Vue 3 CDN 构建的毛玻璃 (Glassmorphism) 深色 UI，无需任何构建步骤。每 2.5 秒自动刷新，支持逐条展开检查请求头信息。
+- **一键批量导出**: 将所有待处理请求一键导出为规范的 `aria2c` 多 URL 输入文件。
+
+## 技术栈
+
+| 层级 | 技术 |
+|---|---|
+| 开发语言 | TypeScript 6（严格模式，编译为 CommonJS） |
+| 运行时（开发） | [Bun](https://bun.sh) — 原生运行 `.ts` 文件，无需额外配置 |
+| 运行时（生产） | Node.js 22 — 运行编译后的 `dist/` 产物 |
+| 后端框架 | Express 5，pino 日志库 |
+| 数据库 | `bun:sqlite`（Bun 环境）/ `better-sqlite3`（Node.js 环境）— 运行时自动检测 |
+| 前端 | Vue 3 CDN + Tailwind CSS v4 CDN |
+| 测试 | Jest + ts-jest + Supertest |
+| 代码检查 | ESLint v10（Flat Config）+ typescript-eslint |
+| 代码格式化 | Prettier（`semi: false`，`singleQuote: true`） |
 
 ## 快速运行
 
@@ -23,42 +37,99 @@
    ```
 
 2. **配置环境变量:**
-   复制项目中提供的 `.env.example` 为 `.env` 文件，以轻松管理代理环境配置！
    ```bash
    cp .env.example .env
    ```
-   *注意: 通过编辑 `.env` 文件，您可以自定义代理运行的端口，通过设定 `ARIA2_RPC_SECRET` 来提供安全的端点鉴权请求保护，或通过定义独立的 `USER_AGENT` 来全局深度覆盖导出的 User-Agent。*
+   编辑 `.env` 文件以设置代理端口、RPC 密钥及可选的 User-Agent 覆盖。
 
-3. **启动代理服务:**
+3. **启动开发服务器（Bun — 原生运行 TypeScript）:**
    ```bash
-   npm start
+   npm run dev
+   ```
+
+   或编译后以 Node.js 运行：
+   ```bash
+   npm run build   # 将 TypeScript 编译至 dist/
+   npm start       # 以 Node.js 运行 dist/server.js
    ```
 
 4. **访问控制台仪表盘:**
-   打开浏览器，访问下方地址即可进入前端控制 UI：
-   - [http://localhost:6800](http://localhost:6800)
+   [http://localhost:6800](http://localhost:6800)
 
-5. **对接至您的浏览器扩展:**
-   将通常指向 Aria2 原始服务端的常规浏览器下载扩展程序（或用户脚本）配置进行更改，使它们连接至 `http://localhost:6800/jsonrpc`，此代理便可在您的后端安静又安全地静默接管并记录所有请求！
+5. **对接您的浏览器扩展:**
+   将浏览器下载扩展或用户脚本中指向 Aria2 的 RPC 端点地址改为：
+   ```
+   http://localhost:6800/jsonrpc
+   ```
+   代理将静默拦截所有 `aria2.addUri` 调用并完成存储。
+
+## 环境变量
+
+| 变量名 | 默认值 | 说明 |
+|---|---|---|
+| `PORT` | `6800` | 代理监听端口 |
+| `ARIA2_RPC_SECRET` | *（未设置）* | 设置后，所有 RPC 请求须携带 `token:<secret>` |
+| `USER_AGENT` | *（未设置）* | 设置后，强制覆盖所有导出请求的 User-Agent |
+| `LOG_LEVEL` | `debug` | Pino 日志级别（`trace` / `debug` / `info` / `warn` / `error`） |
+
+## NPM 脚本
+
+| 脚本 | 说明 |
+|---|---|
+| `npm run dev` | 以 Bun 启动开发服务器（原生运行 TypeScript） |
+| `npm start` | 从编译后的 `dist/` 启动生产服务器 |
+| `npm run build` | 通过 `tsc` 将 TypeScript 编译至 `dist/` |
+| `npm test` | 运行 Jest 测试套件（Node.js + ts-jest） |
+| `npm run lint` | 对 `src/` 和 `tests/` 执行 ESLint v10 检查 |
+| `npm run format` | 对所有文件执行 Prettier 格式化 |
 
 ## 架构说明
 
-- `/src/server.js`: 解耦的主 Express 配置入口，负责启动和加载子路由。
-- `/src/jsonrpc.js`: 完全独立的、高安全性的 JSON-RPC 协议解析接管和密码凭据验证处理器。
-- `/src/api.js`: 为交互式前端 UI 提供驱动控制的标准 RESTful 接口。
-- `/src/db.js`: 底层 `better-sqlite3` 数据池控制器件，负责将记录持久化地安全储存进 `/data/` 目录之内。
-- `/public/`: 原生、轻快部署的单页面应用仪表盘 (SPA) ，利用了现代化的 Tailwind 前端样式基准构造。
+```
+src/
+├── server.ts      Express 应用配置入口 — 中间件挂载、路由注册、启动入口守卫
+├── jsonrpc.ts     JSON-RPC 2.0 处理器 — Secret 鉴权、addUri 拦截、请求头规范化
+├── api.ts         驱动前端仪表盘的 REST 接口
+├── db.ts          运行时感知 SQLite 适配器（Bun 环境用 bun:sqlite，Node 环境用 better-sqlite3）
+├── types.ts       共享 TypeScript 接口定义（DB、RequestRecord、Aria2Options、JsonRpcPayload）
+└── bun.d.ts       bun:sqlite 环境声明类型（允许在无 Bun 环境下通过 tsc 编译）
 
-## 输出格式映射
+public/
+├── index.html     Vue 3 单页应用仪表盘（基于 CDN，无需构建）
+└── app.js         Vue Composition API 应用逻辑
 
-当您通过 UI 原生执行“导出全部 (Export Pending)”指令后，代理应用会生成一份智能适配 Aria2 标准 Input 格式规范的文本内容：
-
-```text
-https://secured-remote-site.com/file.7z
-  out=my-remote-downloads-folder/my-file_04.7z
-  header=User-Agent: Mozilla/5.0...
-  header=Cookie: session_id=1234
-  header=Referer: https://tracker.com
+tests/
+├── api.test.ts      REST API 集成测试
+└── jsonrpc.test.ts  JSON-RPC 处理器测试
 ```
 
-随后，您可以直接将这个导出的文本载荷丢进任意一个真正处于后台运行的终端实例环境内：`aria2c -i aria2_downloads.txt`！
+## 导出格式
+
+点击仪表盘中的 **Export Pending** 后，代理会生成符合 `aria2c` 标准的批量输入文件：
+
+```text
+https://example.com/file.7z
+ out=downloads/file.7z
+ header=User-Agent: Mozilla/5.0...
+ header=Cookie: session_id=1234
+ header=Referer: https://source-site.com
+```
+
+可直接将其传入 aria2：
+
+```bash
+aria2c -i aria2_downloads.txt
+```
+
+## 开发指南
+
+```bash
+# 运行测试
+npm test
+
+# 仅执行类型检查（不生成产物）
+npx tsc --noEmit
+
+# 一步完成检查与格式化
+npm run lint && npm run format
+```
