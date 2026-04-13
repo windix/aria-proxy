@@ -4,7 +4,7 @@ FROM node:22.14.0-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --no-fund --no-audit
 
 COPY tsconfig.json ./
 COPY src/ ./src/
@@ -17,7 +17,7 @@ FROM node:22.14.0-alpine AS production
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --no-fund --no-audit
 
 COPY --from=builder /app/dist ./dist
 
