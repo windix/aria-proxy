@@ -121,6 +121,44 @@ Feed it directly to aria2:
 aria2c -i aria2_downloads.txt
 ```
 
+## Docker
+
+Pre-built multi-arch images (`linux/amd64` and `linux/arm64`) are published to GitHub Container Registry on every push to `main` and on version tags.
+
+```bash
+docker pull ghcr.io/windix/aria-proxy:main
+```
+
+**Run with Docker:**
+
+```bash
+docker run -d \
+  -p 6800:6800 \
+  -e ARIA2_RPC_SECRET=your_secret \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/windix/aria-proxy:main
+```
+
+**Build locally (single arch, loads into local Docker daemon):**
+
+```bash
+docker buildx build --platform linux/amd64 -t aria-proxy --load .
+```
+
+**Build locally for multiple architectures (requires pushing to a registry):**
+
+```bash
+# One-time setup: create a buildx builder with multi-arch support
+docker buildx create --name multiarch --use
+docker buildx inspect --bootstrap
+
+# Build and push
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/windix/aria-proxy:latest \
+  --push .
+```
+
 ## Development
 
 ```bash

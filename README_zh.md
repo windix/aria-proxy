@@ -121,6 +121,44 @@ https://example.com/file.7z
 aria2c -i aria2_downloads.txt
 ```
 
+## Docker
+
+预构建的多架构镜像（`linux/amd64` 和 `linux/arm64`）会在每次推送到 `main` 分支或发布版本标签时发布到 GitHub Container Registry。
+
+```bash
+docker pull ghcr.io/windix/aria-proxy:main
+```
+
+**使用 Docker 运行：**
+
+```bash
+docker run -d \
+  -p 6800:6800 \
+  -e ARIA2_RPC_SECRET=your_secret \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/windix/aria-proxy:main
+```
+
+**本地构建（单架构，加载到本地 Docker）：**
+
+```bash
+docker buildx build --platform linux/amd64 -t aria-proxy --load .
+```
+
+**本地多架构构建（需推送到镜像仓库）：**
+
+```bash
+# 一次性设置：创建支持多架构的 buildx builder
+docker buildx create --name multiarch --use
+docker buildx inspect --bootstrap
+
+# 构建并推送
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/windix/aria-proxy:latest \
+  --push .
+```
+
 ## 开发指南
 
 ```bash
