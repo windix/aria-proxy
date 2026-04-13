@@ -99,7 +99,7 @@ createApp({
     const clearExported = async () => {
       if (!confirm('Are you sure you want to clear all exported requests from the database?')) return;
       try {
-        const res = await fetch('/api/requests/clear', { method: 'POST' });
+        const res = await fetch('/api/requests?type=exported', { method: 'DELETE' });
         const data = await res.json();
         if (data.success) await fetchRequests();
       } catch (err) {
@@ -111,7 +111,7 @@ createApp({
     const deleteAll = async () => {
       if (!confirm('Are you SURE you want to completely delete ALL requests from the database (including pending ones)? This cannot be undone!')) return;
       try {
-        const res = await fetch('/api/requests/clear-all', { method: 'POST' });
+        const res = await fetch('/api/requests?type=all', { method: 'DELETE' });
         const data = await res.json();
         if (data.success) await fetchRequests();
       } catch (err) {

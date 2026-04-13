@@ -69,6 +69,20 @@ describe('Dashboard Database API', () => {
     expect(res.body.text).not.toContain('out=')
   })
 
+  it('clears exported requests from the db entirely', async () => {
+    db.prepare("INSERT INTO requests (url, status) VALUES (?, 'exported')").run('http://delete.me')
+
+    let current = db.prepare('SELECT count(*) as count FROM requests').get() as { count: number }
+    expect(current.count).toBe(1)
+
+    // Test default behavior (type=exported)
+    const res = await request(app).delete('/api/requests').auth('hello', 'world')
+    expect(res.status).toBe(200)
+
+    current = db.prepare('SELECT count(*) as count FROM requests').get() as { count: number }
+    expect(current.count).toBe(0)
+  })
+
   it('clears all requests from the db entirely', async () => {
     db.prepare('INSERT INTO requests (url) VALUES (?)').run('http://delete.me')
 
@@ -77,7 +91,7 @@ describe('Dashboard Database API', () => {
     }
     expect(current.count).toBe(1)
 
-    const res = await request(app).post('/api/requests/clear-all').auth('hello', 'world')
+    const res = await request(app).delete('/api/requests?type=all').auth('hello', 'world')
     expect(res.status).toBe(200)
 
     current = db.prepare('SELECT count(*) as count FROM requests').get() as { count: number }
