@@ -1,5 +1,6 @@
 # Stage 1: Build
-FROM node:22.14.0-alpine AS builder
+ARG NODE_VERSION=22.14.0
+FROM node:${NODE_VERSION}-alpine AS builder
 
 WORKDIR /app
 
@@ -12,7 +13,8 @@ COPY src/ ./src/
 RUN npm run build
 
 # Stage 2: Production
-FROM node:22.14.0-alpine AS production
+ARG NODE_VERSION=22.14.0
+FROM node:${NODE_VERSION}-alpine AS production
 
 WORKDIR /app
 

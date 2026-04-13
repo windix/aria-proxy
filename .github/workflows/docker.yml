@@ -47,6 +47,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Read Node.js version from .nvmrc
+        id: nvmrc
+        run: echo "version=$(cat .nvmrc | tr -d 'v')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -54,5 +58,6 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: NODE_VERSION=${{ steps.nvmrc.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
