@@ -73,9 +73,10 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
           : {}
 
       // --- NORMALIZATION AND OVERRIDES ---
+      // Guard against non-string values in header (untrusted JSON input may contain numbers/objects)
       const customHeaders: string[] = Array.isArray(options.header)
-        ? options.header
-        : options.header
+        ? options.header.filter((h): h is string => typeof h === 'string')
+        : typeof options.header === 'string'
           ? [options.header]
           : []
 
