@@ -44,6 +44,23 @@ describe('Dashboard Database API', () => {
     expect((records[0] as { status: string }).status).toBe('exported')
   })
 
+  it('preserves the dir option when out is absent during export', async () => {
+    db.prepare('INSERT INTO requests (url, out_filename, options_json) VALUES (?, ?, ?)').run(
+      'http://example.com/movie.mkv',
+      null,
+      JSON.stringify({ dir: '/absolute/downloads/movies' }),
+    )
+
+    const res = await request(app).post('/api/requests/export').send({ ids: 'all_pending' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.success).toBe(true)
+    expect(res.body.text).toContain('http://example.com/movie.mkv')
+    expect(res.body.text).toContain('dir=movies')
+    // Should not try to format 'out=' at all
+    expect(res.body.text).not.toContain('out=')
+  })
+
   it('clears all requests from the db entirely', async () => {
     db.prepare('INSERT INTO requests (url) VALUES (?)').run('http://delete.me')
 
