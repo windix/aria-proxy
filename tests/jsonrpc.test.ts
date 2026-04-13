@@ -3,6 +3,7 @@ import app from '../src/server'
 import db from '../src/db'
 import fs from 'fs'
 import path from 'path'
+import yaml from 'yaml'
 
 describe('JSON-RPC API', () => {
   beforeEach(() => {
@@ -93,15 +94,15 @@ describe('JSON-RPC API', () => {
     delete process.env.ARIA2_RPC_SECRET
   })
 
-  it('applies rename rules from data/rename-rules.json if present', async () => {
-    const rulesPath = path.join(__dirname, '../data/rename-rules.json')
+  it('applies rename rules from data/rename-rules.yaml if present', async () => {
+    const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
     const originalOut = 'TEST-REMOVE-file.zip'
 
     // Write temporary rules
     fs.mkdirSync(path.dirname(rulesPath), { recursive: true })
     fs.writeFileSync(
       rulesPath,
-      JSON.stringify([
+      yaml.stringify([
         ['TEST-REMOVE-', ''],
         ['.zip', '.rar'],
       ]),
@@ -136,11 +137,11 @@ describe('JSON-RPC API', () => {
   })
 
   it('does not apply rename rules if it results in an empty filename', async () => {
-    const rulesPath = path.join(__dirname, '../data/rename-rules.json')
+    const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
 
     // Write temporary rules
     fs.mkdirSync(path.dirname(rulesPath), { recursive: true })
-    fs.writeFileSync(rulesPath, JSON.stringify([['ONLY-THIS', '']]))
+    fs.writeFileSync(rulesPath, yaml.stringify([['ONLY-THIS', '']]))
 
     try {
       const payload = JSON.stringify({

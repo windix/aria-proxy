@@ -14,7 +14,7 @@ Built with **TypeScript**, **Express 5**, and **Bun** (dev runtime). Provides a 
 - **Global User-Agent Override**: Optionally force all exports to use a specific `User-Agent` via `USER_AGENT` environment variable.
 - **Premium Web Dashboard**: Glassmorphism dark-mode UI built with Vue 3 CDN — no build step required. Auto-refreshes every 2.5 s and supports inline header inspection per request.
 - **One-Click Export**: Exports all pending requests into a properly formatted `aria2c` multi-URL input file for batch downloading.
-- **Automated Rename Rules**: Optional string replacements applied transparently to the filename based on `data/rename-rules.json`.
+- **Automated Rename Rules**: Optional string replacements applied transparently to the filename based on `data/rename-rules.yaml`.
 
 ## Tech Stack
 
@@ -66,15 +66,14 @@ Built with **TypeScript**, **Express 5**, and **Bun** (dev runtime). Provides a 
 
 ## Automated Rename Rules
 
-You can apply automated text replacements to incoming output filenames by creating a `rename-rules.json` file inside the `data/` directory.
+You can apply automated text replacements to incoming output filenames by creating a `rename-rules.yaml` file inside the `data/` directory.
 
-The file should be a JSON array containing pairs of strings `["TARGET", "REPLACEMENT"]`:
+The file should be a YAML array containing pairs of strings `["TARGET", "REPLACEMENT"]`:
 
-```json
-[
-  ["EXAMPLE-TO-REMOVE-", ""],
-  [".mp4", ".mkv"]
-]
+```yaml
+# You can include comments!
+- ["EXAMPLE-TO-REMOVE-", ""]
+- [".mp4", ".mkv"]
 ```
 
 When a new download request is received, the proxy evaluates the `out` parameter against these rules. If any string matches a target, it automatically replaces ALL occurrences of the target with the corresponding replacement string. If a rule produces an empty or invalid filename, it is safely ignored.

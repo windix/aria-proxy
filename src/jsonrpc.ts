@@ -1,6 +1,7 @@
 import express, { type Router, type Request, type Response } from 'express'
 import fs from 'fs'
 import path from 'path'
+import yaml from 'yaml'
 import type { Logger } from 'pino'
 
 import type { DB, Aria2Options, JsonRpcPayload } from './types'
@@ -137,10 +138,10 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
       // --- AUTOMATED RENAME ---
       if (options.out) {
         try {
-          const rulesPath = path.join(__dirname, '../data/rename-rules.json')
+          const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
           if (fs.existsSync(rulesPath)) {
             const content = fs.readFileSync(rulesPath, 'utf8')
-            const rules = JSON.parse(content)
+            const rules = yaml.parse(content)
             if (Array.isArray(rules)) {
               let newOut = options.out
               let modified = false

@@ -1,0 +1,7 @@
+# Automated rename rules
+# You can use text replacements to rename incoming files automatically.
+# Example: 
+# - ["TARGET", "REPLACEMENT"]
+
+- ["EXAMPLE-TO-REMOVE-", ""]
+# - [".mp4", ".mkv"]
