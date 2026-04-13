@@ -205,7 +205,7 @@
             <div class="text-xs text-slate-400 uppercase tracking-wider mb-2 font-semibold">ARIA2_RPC_SECRET</div>
             <div v-if="settings.rpcSecretSet" class="flex items-center gap-3 bg-black/30 p-3 rounded-lg border border-white/5">
               <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-md border border-emerald-500/20 uppercase tracking-widest"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> SECURED</span>
-              <code class="text-slate-300 font-mono tracking-wider">{{ settings.rpcSecretMasked }}</code>
+              <code class="text-slate-300 font-mono tracking-wider">{{ settings.rpcSecret }}</code>
             </div>
             <div v-else class="flex items-center gap-3 bg-red-900/10 p-3 rounded-lg border border-red-500/20">
               <span class="inline-flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-md border border-red-500/20 uppercase tracking-widest">UNSECURED</span>

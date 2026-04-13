@@ -7,7 +7,7 @@ createApp({
     const requests = ref([]);
     const settings = ref({
       rpcSecretSet: false,
-      rpcSecretMasked: null,
+      rpcSecret: null,
       userAgentOverride: null,
       renameRulesYaml: null
     });

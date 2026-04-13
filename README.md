@@ -73,7 +73,6 @@ The file should be a YAML array containing pairs of strings `["TARGET", "REPLACE
 ```yaml
 # You can include comments!
 - ["EXAMPLE-TO-REMOVE-", ""]
-- [".mp4", ".mkv"]
 ```
 
 When a new download request is received, the proxy evaluates the `out` parameter against these rules. If any string matches a target, it automatically replaces ALL occurrences of the target with the corresponding replacement string. If a rule produces an empty or invalid filename, it is safely ignored.
@@ -85,6 +84,8 @@ When a new download request is received, the proxy evaluates the `out` parameter
 | `PORT` | `6800` | Port the proxy listens on |
 | `ARIA2_RPC_SECRET` | *(unset)* | If set, all RPC requests must include `token:<secret>` |
 | `USER_AGENT` | *(unset)* | If set, overrides the User-Agent on all exported requests |
+| `UI_USERNAME` | `hello` | Username for accessing the Dashboard and `/api` natively |
+| `UI_PASSWORD` | `world` | Password for accessing the Dashboard and `/api` natively |
 | `LOG_LEVEL` | `debug` | Pino log level (`trace` / `debug` / `info` / `warn` / `error`) |
 
 ## NPM Scripts

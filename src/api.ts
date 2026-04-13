@@ -189,26 +189,15 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
         rulesYaml = fs.readFileSync(rulesPath, 'utf8')
       }
 
-      // Check lengths and truthiness so we don't accidentally leak absolute secrets!
+      // Get exact values to display natively in the dashboard due to secured basic auth.
       const rpcSecretSet = !!process.env.ARIA2_RPC_SECRET
-      let rpcSecretMasked = null
-      if (rpcSecretSet && process.env.ARIA2_RPC_SECRET) {
-        const secretLen = process.env.ARIA2_RPC_SECRET.length
-        if (secretLen <= 3) {
-          rpcSecretMasked = '*'.repeat(secretLen)
-        } else {
-          rpcSecretMasked =
-            process.env.ARIA2_RPC_SECRET.substring(0, 2) +
-            '*'.repeat(secretLen - 3) +
-            process.env.ARIA2_RPC_SECRET.substring(secretLen - 1)
-        }
-      }
+      const rpcSecret = process.env.ARIA2_RPC_SECRET || null
 
       const userAgentOverride = process.env.USER_AGENT || null
 
       res.json({
         rpcSecretSet,
-        rpcSecretMasked,
+        rpcSecret,
         userAgentOverride,
         renameRulesYaml: rulesYaml,
       })

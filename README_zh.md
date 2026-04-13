@@ -73,7 +73,6 @@
 ```yaml
 # 这里可以包含注释！
 - ["EXAMPLE-TO-REMOVE-", ""]
-- [".mp4", ".mkv"]
 ```
 
 当收到新的下载请求时，代理会根据这些规则对 `out` 参数进行比对计算。如果任何字符串与目标相匹配，它将自动把所有出现该目标的地方替换为相应的替换字符串。如果某条规则导致文件名为空或无效，则会被自动安全地忽略。
@@ -85,6 +84,8 @@
 | `PORT` | `6800` | 代理监听端口 |
 | `ARIA2_RPC_SECRET` | *（未设置）* | 设置后，所有 RPC 请求须携带 `token:<secret>` |
 | `USER_AGENT` | *（未设置）* | 设置后，强制覆盖所有导出请求的 User-Agent |
+| `UI_USERNAME` | `hello` | 用于访问控制台界面（Dashboard）与 `/api` 的配置用户名 |
+| `UI_PASSWORD` | `world` | 用于访问控制台界面（Dashboard）与 `/api` 的配置密码 |
 | `LOG_LEVEL` | `debug` | Pino 日志级别（`trace` / `debug` / `info` / `warn` / `error`） |
 
 ## NPM 脚本

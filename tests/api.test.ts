@@ -20,7 +20,7 @@ describe('Dashboard Database API', () => {
       'pending',
     )
 
-    const res = await request(app).get('/api/requests')
+    const res = await request(app).get('/api/requests').auth('hello', 'world')
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(1)
     expect(res.body[0].url).toBe('http://foo.com/bar')
@@ -34,7 +34,10 @@ describe('Dashboard Database API', () => {
       JSON.stringify({ out: 'test.bin', header: 'Custom: test' }),
     )
 
-    const res = await request(app).post('/api/requests/export').send({ ids: 'all_pending' })
+    const res = await request(app)
+      .post('/api/requests/export')
+      .send({ ids: 'all_pending' })
+      .auth('hello', 'world')
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
@@ -53,7 +56,10 @@ describe('Dashboard Database API', () => {
       JSON.stringify({ dir: '/absolute/downloads/movies' }),
     )
 
-    const res = await request(app).post('/api/requests/export').send({ ids: 'all_pending' })
+    const res = await request(app)
+      .post('/api/requests/export')
+      .send({ ids: 'all_pending' })
+      .auth('hello', 'world')
 
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
@@ -71,7 +77,7 @@ describe('Dashboard Database API', () => {
     }
     expect(current.count).toBe(1)
 
-    const res = await request(app).post('/api/requests/clear-all')
+    const res = await request(app).post('/api/requests/clear-all').auth('hello', 'world')
     expect(res.status).toBe(200)
 
     current = db.prepare('SELECT count(*) as count FROM requests').get() as { count: number }
@@ -90,10 +96,10 @@ describe('Dashboard Database API', () => {
       fs.writeFileSync(rulesPath, rulesContent)
 
       try {
-        const res = await request(app).get('/api/settings')
+        const res = await request(app).get('/api/settings').auth('hello', 'world')
         expect(res.status).toBe(200)
         expect(res.body.rpcSecretSet).toBe(true)
-        expect(res.body.rpcSecretMasked).toBe('su***********3')
+        expect(res.body.rpcSecret).toBe('supersecret123')
         expect(res.body.userAgentOverride).toBe('Custom/1.0')
         expect(res.body.renameRulesYaml).toBe(rulesContent)
       } finally {
@@ -115,10 +121,10 @@ describe('Dashboard Database API', () => {
       if (fs.existsSync(rulesPath)) fs.unlinkSync(rulesPath)
 
       try {
-        const res = await request(app).get('/api/settings')
+        const res = await request(app).get('/api/settings').auth('hello', 'world')
         expect(res.status).toBe(200)
         expect(res.body.rpcSecretSet).toBe(false)
-        expect(res.body.rpcSecretMasked).toBeNull()
+        expect(res.body.rpcSecret).toBeNull()
         expect(res.body.userAgentOverride).toBeNull()
         expect(res.body.renameRulesYaml).toBeNull()
       } finally {
