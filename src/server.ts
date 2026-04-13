@@ -1,25 +1,29 @@
-require('dotenv').config();
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const pino = require('pino');
+import 'dotenv/config';
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import pino from 'pino';
 
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'debug',
+import db from './db';
+import createJsonRpcRouter from './jsonrpc';
+import createApiRouter from './api';
+
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? 'debug',
   transport: {
     target: 'pino-pretty',
-    options: { colorize: true }
-  }
+    options: { colorize: true },
+  },
 });
 
 const app = express();
-const port = process.env.PORT || 6800;
+const port = process.env.PORT ?? 6800;
 
 // Middleware
 app.use(cors());
 
 // Limit raw parsing + content-type spoofing to EXACTLY the /jsonrpc endpoint
-app.use('/jsonrpc', (req, res, next) => {
+app.use('/jsonrpc', (req, _res, next) => {
   if (req.method === 'POST' && !req.headers['content-type']) {
     req.headers['content-type'] = 'text/plain';
   }
@@ -34,20 +38,14 @@ app.use('/api', express.json());
 
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Database setup
-const db = require('./db');
-
 // Modular Routers
-const jsonRpcRouter = require('./jsonrpc')(db, logger);
-const apiRouter = require('./api')(db, logger);
-
-app.use('/jsonrpc', jsonRpcRouter);
-app.use('/api', apiRouter);
+app.use('/jsonrpc', createJsonRpcRouter(db, logger));
+app.use('/api', createApiRouter(db, logger));
 
 if (require.main === module) {
   app.listen(port, () => {
-    logger.info("Aria2 Proxy listening on port " + port);
+    logger.info(`Aria2 Proxy listening on port ${port}`);
   });
 }
 
-module.exports = app;
+export default app;

@@ -1,13 +1,10 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+import Database from 'better-sqlite3';
+import path from 'path';
 
-let dbPath;
-if (process.env.NODE_ENV === 'test') {
-  dbPath = ':memory:';
-} else {
-  dbPath = path.join(__dirname, '../data/requests.sqlite');
-}
-const db = new Database(dbPath);
+const dbPath: string =
+  process.env.NODE_ENV === 'test' ? ':memory:' : path.join(__dirname, '../data/requests.sqlite');
+
+const db: InstanceType<typeof Database> = new Database(dbPath);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS requests (
@@ -21,4 +18,4 @@ db.exec(`
   )
 `);
 
-module.exports = db;
+export default db;
