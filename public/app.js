@@ -24,15 +24,15 @@ createApp({
       return requests.value.filter(r => r.status === 'exported').length;
     });
     
-    const totalCount = computed(() => {
-      return requests.value.length;
-    });
+    const totalCount = ref(0);
 
     // Methods
     const fetchRequests = async () => {
       try {
         const res = await fetch('/api/requests');
-        requests.value = await res.json();
+        const data = await res.json();
+        requests.value = data.items;
+        totalCount.value = data.totalCount;
       } catch (err) {
         console.error('Failed to fetch requests:', err);
       }
@@ -87,7 +87,10 @@ createApp({
             alert('No pending requests to export!');
             return;
           }
-          downloadStringAsFile(data.text, 'aria2_downloads.txt');
+          const pad = (n) => String(n).padStart(2, '0');
+          const d = new Date();
+          const timestamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+          downloadStringAsFile(data.text, `aria2_${timestamp}.txt`);
           await fetchRequests();
         }
       } catch (err) {

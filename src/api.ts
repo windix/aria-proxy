@@ -18,11 +18,15 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
       if (status && typeof status === 'string') {
         results = db
           .prepare<RequestRecord>(
-            'SELECT * FROM requests WHERE status = ? ORDER BY created_at DESC',
+            "SELECT * FROM requests WHERE status = ? AND status != 'deleted' ORDER BY created_at DESC",
           )
           .all(status)
       } else {
-        results = db.prepare<RequestRecord>('SELECT * FROM requests ORDER BY created_at DESC').all()
+        results = db
+          .prepare<RequestRecord>(
+            "SELECT * FROM requests WHERE status != 'deleted' ORDER BY created_at DESC",
+          )
+          .all()
       }
 
       // Parse headers JSON string back to array for the UI
@@ -31,7 +35,10 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
         headers: JSON.parse(r.headers || '[]') as string[],
       }))
 
-      res.json(parsed)
+      const { count } = db.prepare('SELECT count(*) as count FROM requests').get() as {
+        count: number
+      }
+      res.json({ items: parsed, totalCount: count })
     } catch (err) {
       logger.error(err)
       res.status(500).json({ error: (err as Error).message })
@@ -50,9 +57,6 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
       return res.status(400).json({ error: 'ids must be "all_pending" or an array of ids' })
     }
 
-    const getStmt = db.prepare<RequestRecord>('SELECT * FROM requests WHERE id = ?')
-    const updateStmt = db.prepare("UPDATE requests SET status = 'exported' WHERE id = ?")
-
     let records: RequestRecord[] = []
 
     if (ids === 'all_pending') {
@@ -61,17 +65,20 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
           "SELECT * FROM requests WHERE status = 'pending' ORDER BY created_at ASC",
         )
         .all()
-    } else if (Array.isArray(ids)) {
-      for (const id of ids as number[]) {
-        const rec = getStmt.get(id)
-        if (rec) records.push(rec)
-      }
+    } else if (Array.isArray(ids) && ids.length > 0) {
+      const placeholders = ids.map(() => '?').join(',')
+      records = db
+        .prepare<RequestRecord>(`SELECT * FROM requests WHERE id IN (${placeholders})`)
+        .all(...ids)
     }
 
     let exportText = ''
 
-    const exportTransaction = db.transaction((recs: RequestRecord[]) => {
-      for (const rec of recs) {
+    try {
+      const exportedIds: number[] = []
+
+      for (const rec of records) {
+        exportedIds.push(rec.id)
         exportText += rec.url + '\n'
 
         const opts = rec.options_json ? (JSON.parse(rec.options_json) as Aria2Options) : null
@@ -119,14 +126,15 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
             }
           }
         }
-
-        // Mark as exported
-        updateStmt.run(rec.id)
       }
-    })
 
-    try {
-      exportTransaction(records)
+      if (exportedIds.length > 0) {
+        const placeholders = exportedIds.map(() => '?').join(',')
+        db.prepare(`UPDATE requests SET status = 'exported' WHERE id IN (${placeholders})`).run(
+          ...exportedIds,
+        )
+      }
+
       res.json({ success: true, text: exportText })
     } catch (err) {
       logger.error(err)
@@ -137,7 +145,9 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
   // API: Delete a single request by ID
   router.delete('/requests/:id', (req: Request, res: Response) => {
     try {
-      const info = db.prepare('DELETE FROM requests WHERE id = ?').run(req.params.id)
+      const info = db
+        .prepare("UPDATE requests SET status = 'deleted' WHERE id = ?")
+        .run(req.params.id)
       if (info.changes > 0) {
         res.json({ success: true })
       } else {
@@ -155,9 +165,9 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
     try {
       let info
       if (type === 'all') {
-        info = db.prepare('DELETE FROM requests').run()
+        info = db.prepare("UPDATE requests SET status = 'deleted'").run()
       } else {
-        info = db.prepare("DELETE FROM requests WHERE status = 'exported'").run()
+        info = db.prepare("UPDATE requests SET status = 'deleted' WHERE status = 'exported'").run()
       }
       res.json({ success: true, deletedCount: info.changes })
     } catch (err) {
