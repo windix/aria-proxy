@@ -3,7 +3,14 @@ const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 createApp({
   setup() {
     // State
+    const currentTab = ref('requests');
     const requests = ref([]);
+    const settings = ref({
+      rpcSecretSet: false,
+      rpcSecretMasked: null,
+      userAgentOverride: null,
+      renameRulesYaml: null
+    });
     const refreshTimer = ref(null);
     const expandedHeaders = ref({}); // Maps request IDs to boolean for dropdown state
     const version = ref({ commit: null, tag: null });
@@ -28,6 +35,15 @@ createApp({
         requests.value = await res.json();
       } catch (err) {
         console.error('Failed to fetch requests:', err);
+      }
+    };
+
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        settings.value = await res.json();
+      } catch (err) {
+        console.error('Failed to fetch settings:', err);
       }
     };
 
@@ -119,6 +135,7 @@ createApp({
     // Lifecycle
     onMounted(async () => {
       fetchRequests();
+      fetchSettings();
 
       try {
         const res = await fetch('/api/version');
@@ -143,7 +160,9 @@ createApp({
 
     // Expose all necessary bindings to the template
     return {
+      currentTab,
       requests,
+      settings,
       expandedHeaders,
       pendingCount,
       exportedCount,
