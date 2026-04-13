@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aria Proxy Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="background-mesh"></div>
+  
+  <div class="app-container">
+    <header class="glass-header">
+      <div class="logo">
+        <div class="pulse-dot"></div>
+        <h1>AriaProxy</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-refresh" class="btn btn-icon" title="Refresh">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-11.5l5.6 5.6"/></svg>
+        </button>
+        <button id="btn-export" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export Pending
+        </button>
+        <button id="btn-clear" class="btn btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Clear Exported
+        </button>
+        <button id="btn-delete-all" class="btn" style="background-color: var(--danger); color: white;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+          Delete All
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-label">Pending Links</div>
+          <div class="stat-value" id="stat-pending">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Exported Links</div>
+          <div class="stat-value" id="stat-exported">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Caught</div>
+          <div class="stat-value" id="stat-total">0</div>
+        </div>
+      </div>
+
+      <div class="table-card glass-panel">
+        <div class="table-responsive">
+          <table id="requests-table">
+            <thead>
+              <tr>
+                <th width="5%">ID</th>
+                <th width="45%">URL & Details</th>
+                <th width="20%">Output Name</th>
+                <th width="10%">Status</th>
+                <th width="15%">Time</th>
+                <th width="5%">Action</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+              <!-- Dynamically populated -->
+              <tr class="empty-row"><td colspan="6">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
