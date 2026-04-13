@@ -163,6 +163,24 @@ docker buildx build \
   --push .
 ```
 
+## 发布版本
+
+推送 semver 标签会触发 GitHub Actions 构建，并将带版本号的镜像发布到 GHCR（例如 `ghcr.io/windix/aria-proxy:1.2.3` 和 `ghcr.io/windix/aria-proxy:1.2`）。标签名称也会嵌入到镜像中并显示在仪表盘底部。
+
+```bash
+# 先在 package.json 中更新版本号，然后：
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+如需删除标签并重新发布：
+
+```bash
+git tag -d v1.2.3
+git push origin --delete v1.2.3
+```
+
+
 ## 开发指南
 
 ```bash
