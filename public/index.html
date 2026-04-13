@@ -168,8 +168,6 @@
       </div>
     </div>
     
-  </div>
-
   <!-- Footer -->
   <footer v-if="version.commit || version.tag" class="mt-8 mb-4 text-center">
     <span class="inline-flex items-center gap-2 text-xs text-slate-500 font-mono">
@@ -179,6 +177,8 @@
       <span v-if="version.commit">{{ version.commit }}</span>
     </span>
   </footer>
+
+  </div>
 
   <script src="app.js"></script>
 </body>
