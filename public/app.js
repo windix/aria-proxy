@@ -24,6 +24,10 @@ createApp({
       return requests.value.filter(r => r.status === 'exported').length;
     });
     
+    const visibleRequests = computed(() => {
+      return requests.value.filter(r => r.status !== 'deleted');
+    });
+    
     const totalCount = computed(() => {
       return requests.value.length;
     });
@@ -165,6 +169,7 @@ createApp({
     return {
       currentTab,
       requests,
+      visibleRequests,
       settings,
       expandedHeaders,
       pendingCount,
