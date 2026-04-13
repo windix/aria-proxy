@@ -149,21 +149,16 @@ export default function createApiRouter(db: DB, logger: Logger): Router {
     }
   })
 
-  // API: Clear all exported requests
-  router.post('/requests/clear', (_req: Request, res: Response) => {
+  // API: Clear requests based on type (all or exported)
+  router.delete('/requests', (req: Request, res: Response) => {
+    const type = req.query.type || 'exported'
     try {
-      const info = db.prepare("DELETE FROM requests WHERE status = 'exported'").run()
-      res.json({ success: true, deletedCount: info.changes })
-    } catch (err) {
-      logger.error(err)
-      res.status(500).json({ error: (err as Error).message })
-    }
-  })
-
-  // API: Clear ALL requests (including pending)
-  router.post('/requests/clear-all', (_req: Request, res: Response) => {
-    try {
-      const info = db.prepare('DELETE FROM requests').run()
+      let info
+      if (type === 'all') {
+        info = db.prepare('DELETE FROM requests').run()
+      } else {
+        info = db.prepare("DELETE FROM requests WHERE status = 'exported'").run()
+      }
       res.json({ success: true, deletedCount: info.changes })
     } catch (err) {
       logger.error(err)
