@@ -102,7 +102,6 @@ module.exports = function(db, logger) {
       // --- END NORMALIZATION ---
 
       // Process each URI (though typically there's only one per addUri call)
-      let processed = 0;
       const stmt = db.prepare('INSERT INTO requests (url, out_filename, headers, options_json) VALUES (?, ?, ?, ?)');
 
       // We run the inserts in a transaction for safety
@@ -114,14 +113,13 @@ module.exports = function(db, logger) {
             headersStr = JSON.stringify(Array.isArray(options.header) ? options.header : [options.header]);
           }
           stmt.run(uri, out_filename, headersStr, JSON.stringify(options));
-          processed++;
         }
       });
 
       try {
         insertMany(uris);
-        // Mocking a successful gid return (16 hex chars)
-        const mockGid = Math.random().toString(16).slice(2, 18).padStart(16, '0');
+        // Generate a reliable 16-char hex GID (Math.random alone can be < 16 hex digits)
+        const mockGid = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
         res.json({
           id: id,
           jsonrpc: "2.0",

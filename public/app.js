@@ -32,9 +32,11 @@ createApp({
 
     const toggleHeaders = (id) => {
       if (expandedHeaders.value[id]) {
-        delete expandedHeaders.value[id];
+        // Vue 3: use object spread to drop the key reactively (delete operator won't trigger updates)
+        const { [id]: _, ...rest } = expandedHeaders.value;
+        expandedHeaders.value = rest;
       } else {
-        expandedHeaders.value[id] = true;
+        expandedHeaders.value = { ...expandedHeaders.value, [id]: true };
       }
     };
 

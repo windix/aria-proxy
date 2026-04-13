@@ -31,7 +31,14 @@ module.exports = function(db, logger) {
 
   // API: Export requests (marks as exported and returns the raw string)
   router.post('/requests/export', (req, res) => {
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
     const { ids } = req.body; // array of ids, or 'all_pending'
+
+    if (!ids || (ids !== 'all_pending' && !Array.isArray(ids))) {
+      return res.status(400).json({ error: 'ids must be "all_pending" or an array of ids' });
+    }
 
     const getStmt = db.prepare('SELECT * FROM requests WHERE id = ?');
     const updateStmt = db.prepare("UPDATE requests SET status = 'exported' WHERE id = ?");
