@@ -111,17 +111,22 @@ app.post('/jsonrpc', (req, res) => {
     const overrideUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36";
     let customHeaders = Array.isArray(options.header) ? options.header : (options.header ? [options.header] : []);
     
+    let originalReferer = null;
+    let originalCookie = null;
+
     // Clear out any existing user-agent/referer/cookie from the payload header array to prevent duplicates
     let finalHeaders = customHeaders.filter(h => {
       const lower = h.toLowerCase();
+      if (lower.startsWith('referer:')) originalReferer = h.substring(8).trim();
+      if (lower.startsWith('cookie:')) originalCookie = h.substring(7).trim();
       return !lower.startsWith('user-agent:') && !lower.startsWith('referer:') && !lower.startsWith('cookie:');
     });
 
-    // Extract from HTTP headers or from explicit options payload fallback
-    const referer = req.headers['referer'] || options['referer'];
+    // Extract from HTTP headers, explicit options payload, or the ones we just extracted from options.header
+    const referer = req.headers['referer'] || options['referer'] || originalReferer;
     if (referer) finalHeaders.push('Referer: ' + referer);
     
-    const cookie = req.headers['cookie'] || options['cookie'];
+    const cookie = req.headers['cookie'] || options['cookie'] || originalCookie;
     if (cookie) finalHeaders.push('Cookie: ' + cookie);
 
     // Force override User-Agent
