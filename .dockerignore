@@ -9,7 +9,7 @@ data/
 *.log
 tests/
 *.md
-public/
+
 .nvmrc
 eslint.config.mjs
 tsconfig.test.json
