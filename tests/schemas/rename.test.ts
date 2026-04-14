@@ -36,13 +36,13 @@ describe('Rename Schema', () => {
       const input = [
         ['valid', 'rule'],
         ['missing-replacement'],
+        ['', 'empty-target'], // Should fail min(1)
         { not: 'an-array' },
-        [123, 456], // Should be coerced to strings
+        [123, 456], // Should fail (not strings)
       ]
       const result = RenameRulesSchema.parse(input)
-      expect(result).toHaveLength(2)
+      expect(result).toHaveLength(1)
       expect(result[0]).toEqual({ target: 'valid', replacement: 'rule' })
-      expect(result[1]).toEqual({ target: '123', replacement: '456' })
     })
 
     it('handles empty input', () => {

@@ -86,7 +86,7 @@ describe('Payload Schemas', () => {
     })
 
     it('accepts extra trailing arguments', () => {
-      const input = [['http://uri1'], {}, 10] // 10 is the optinal position
+      const input = [['http://uri1'], {}, 10] // 10 is the optional position
       const result = AddUriArgsSchema.parse(input)
       expect(result).toHaveLength(3)
     })
@@ -109,6 +109,17 @@ describe('Payload Schemas', () => {
       const result = JsonRpcPayloadSchema.parse(payload)
       expect(result.method).toBe('test')
       expect(result.params.args).toEqual(['arg1'])
+    })
+
+    it('handles payload when params is not present', () => {
+      const payload = {
+        jsonrpc: '2.0',
+        method: 'test',
+        id: 1,
+      }
+      const result = JsonRpcPayloadSchema.parse(payload)
+      expect(result.params.isArray).toBe(false)
+      expect(result.params.args).toEqual([])
     })
   })
 })

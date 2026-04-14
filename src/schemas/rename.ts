@@ -8,15 +8,19 @@ export interface RenameRule {
   replacement: string
 }
 
-const RenameRuleTuple = z.array(z.any()).min(2)
+const SingleRuleSchema = z.tuple([z.string().min(1), z.string()])
+
 export const RenameRulesSchema = z
   .array(z.any())
   .catch([])
   .transform((rules) =>
     rules
-      .map((r) => RenameRuleTuple.safeParse(r))
+      .map((r) => SingleRuleSchema.safeParse(r))
       .filter((res) => res.success)
-      .map((res) => ({ target: String(res.data[0]), replacement: String(res.data[1]) })),
+      .map(({ data: [target, replacement] }) => ({
+        target,
+        replacement,
+      })),
   )
 
 export function loadRenameRules(rulesPath: string, logger: Logger): RenameRule[] {
