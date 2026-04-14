@@ -36,11 +36,3 @@ export interface Aria2Options {
   'user-agent'?: string
   [key: string]: unknown
 }
-
-/** Parsed JSON-RPC 2.0 request body */
-export interface JsonRpcPayload {
-  jsonrpc: string
-  id: string | number | null
-  method: string
-  params?: unknown[]
-}
