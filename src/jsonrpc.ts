@@ -84,6 +84,40 @@ function extractAndFilterHeaders(headers: string[], targets: string[]) {
 export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
   const router = express.Router()
 
+  // --- RENAME RULES CACHE ---
+  let cachedRenameRules: { target: string; replacement: string }[] = []
+  const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
+
+  const loadRenameRules = () => {
+    try {
+      if (fs.existsSync(rulesPath)) {
+        const content = fs.readFileSync(rulesPath, 'utf8')
+        cachedRenameRules = RenameRulesSchema.parse(yaml.parse(content))
+        logger.debug('Rename rules loaded into memory cache')
+      } else {
+        cachedRenameRules = []
+      }
+    } catch (err) {
+      logger.error(err, 'Failed to parse rename rules from disk')
+    }
+  }
+
+  loadRenameRules()
+
+  try {
+    if (fs.existsSync(path.dirname(rulesPath))) {
+      const watcher = fs.watch(path.dirname(rulesPath), (eventType, filename) => {
+        if (!filename || filename === 'rename-rules.yaml') {
+          setTimeout(loadRenameRules, 50)
+        }
+      })
+      watcher.unref()
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Could not initialize fs.watch for rename-rules.yaml')
+  }
+  // --- END RENAME RULES CACHE ---
+
   // Helper to send a JSON-RPC 2.0 error response
   const rpcError = (
     res: Response,
@@ -186,37 +220,20 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
       // --- END NORMALIZATION ---
 
       // --- AUTOMATED RENAME ---
-      if (options.out) {
-        try {
-          const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
-          if (fs.existsSync(rulesPath)) {
-            const content = fs.readFileSync(rulesPath, 'utf8')
-            const parsedYaml = yaml.parse(content)
-            const rules = RenameRulesSchema.parse(parsedYaml)
+      if (options.out && cachedRenameRules.length > 0) {
+        let newOut = options.out
 
-            let newOut = options.out
+        for (const { target, replacement } of cachedRenameRules) {
+          newOut = newOut.split(target).join(replacement)
+        }
 
-            for (const { target, replacement } of rules) {
-              newOut = newOut.split(target).join(replacement)
-            }
-
-            if (newOut !== options.out) {
-              if (newOut.trim() !== '') {
-                options.out = newOut
-                logger.debug(
-                  { original: options.out, new: newOut },
-                  'Applied rename rules to filename',
-                )
-              } else {
-                logger.warn(
-                  { out: options.out },
-                  'Rename rules resulted in empty filename, ignoring.',
-                )
-              }
-            }
+        if (newOut !== options.out) {
+          if (newOut.trim() !== '') {
+            options.out = newOut
+            logger.debug({ original: options.out, new: newOut }, 'Applied rename rules to filename')
+          } else {
+            logger.warn({ out: options.out }, 'Rename rules resulted in empty filename, ignoring.')
           }
-        } catch (err) {
-          logger.error(err, 'Failed to process rename rules')
         }
       }
       // --- END AUTOMATED RENAME ---

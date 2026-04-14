@@ -108,6 +108,9 @@ describe('JSON-RPC API', () => {
       ]),
     )
 
+    // Give fs.watch time to debounce and update the app cache
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
     try {
       const payload = JSON.stringify({
         jsonrpc: '2.0',
@@ -142,6 +145,9 @@ describe('JSON-RPC API', () => {
     // Write temporary rules
     fs.mkdirSync(path.dirname(rulesPath), { recursive: true })
     fs.writeFileSync(rulesPath, yaml.stringify([['ONLY-THIS', '']]))
+
+    // Give fs.watch time to debounce and update the app cache
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
     try {
       const payload = JSON.stringify({
