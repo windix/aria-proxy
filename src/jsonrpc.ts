@@ -1,13 +1,38 @@
 import express, { type Router, type Request, type Response } from 'express'
-import fs from 'fs'
 import path from 'path'
-import yaml from 'yaml'
 import type { Logger } from 'pino'
 
-import type { DB, Aria2Options, JsonRpcPayload } from './types'
+import type { DB, Aria2Options } from './types'
+import {
+  RequestBodySchema,
+  JsonRpcIdSchema,
+  JsonRpcPayloadSchema,
+  AddUriArgsSchema,
+  HeaderSchema,
+  extractAndFilterHeaders,
+} from './schemas/payload'
+import { loadRenameRules, applyRenameRules } from './schemas/rename'
+import type { RenameRule } from './schemas/rename'
+
+export const testHelpers: { reloadRenameRules?: () => void } = {}
 
 export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
   const router = express.Router()
+
+  // --- RENAME RULES CACHE ---
+  let cachedRenameRules: RenameRule[] = []
+  const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
+
+  const reloadRules = () => {
+    cachedRenameRules = loadRenameRules(rulesPath, logger)
+  }
+
+  reloadRules()
+
+  if (process.env.NODE_ENV === 'test') {
+    testHelpers.reloadRenameRules = reloadRules
+  }
+  // --- END RENAME RULES CACHE ---
 
   // Helper to send a JSON-RPC 2.0 error response
   const rpcError = (
@@ -34,90 +59,65 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
       'Received raw JSON-RPC request',
     )
 
-    if (!req.body || typeof req.body !== 'string' || req.body.trim() === '') {
+    const bodyParse = RequestBodySchema.safeParse(req.body)
+    if (!bodyParse.success) {
       logger.warn('req.body is empty or not text. Request may be completely empty.')
       return rpcError(res, null, -32700, 'Parse error: empty request')
     }
 
-    let parsedBody: JsonRpcPayload
+    let rawJson: unknown
     try {
-      parsedBody = JSON.parse(req.body) as JsonRpcPayload
+      rawJson = JSON.parse(bodyParse.data)
     } catch {
       logger.error('Failed to parse request body as JSON. Raw body: ' + redactedBody)
       return rpcError(res, null, -32700, 'Parse error: Invalid JSON')
     }
 
-    const { jsonrpc, id, method, params } = parsedBody
-
-    if (jsonrpc !== '2.0' || !method) {
-      return rpcError(res, id, -32600, 'Invalid Request')
+    const parseResult = JsonRpcPayloadSchema.safeParse(rawJson)
+    if (!parseResult.success) {
+      const idResult = JsonRpcIdSchema.safeParse(rawJson)
+      const errId = idResult.success ? idResult.data.id : null
+      return rpcError(res, errId, -32600, 'Invalid Request')
     }
 
-    // --- OPTIONAL RPC SECRET CHECK ---
-    let isTokenPresent = false
-    if (
-      Array.isArray(params) &&
-      params.length > 0 &&
-      typeof params[0] === 'string' &&
-      params[0].startsWith('token:')
-    ) {
-      isTokenPresent = true
-      const providedSecret = params[0].substring(6)
-      if (process.env.ARIA2_RPC_SECRET && providedSecret !== process.env.ARIA2_RPC_SECRET) {
-        logger.warn('Unauthorized request rejected: Invalid RPC Secret')
-        return rpcError(res, id, 1, 'Unauthorized')
-      }
-    } else if (process.env.ARIA2_RPC_SECRET) {
-      logger.warn('Unauthorized request rejected: Missing RPC Secret')
+    const { id, method, params } = parseResult.data
+
+    // --- RPC SECRET CHECK ---
+    if (process.env.ARIA2_RPC_SECRET && params.providedSecret !== process.env.ARIA2_RPC_SECRET) {
+      logger.warn('Unauthorized request rejected: Invalid RPC Secret')
       return rpcError(res, id, 1, 'Unauthorized')
     }
 
     if (method === 'aria2.addUri') {
-      if (!Array.isArray(params)) {
+      if (!params.isArray) {
         return rpcError(res, id, -32602, 'Invalid params')
       }
 
-      const rawUris = isTokenPresent ? params[1] : params[0]
-      const rawOptions = isTokenPresent ? params[2] : params[1]
+      const argsParse = AddUriArgsSchema.safeParse(params.args)
+      if (!argsParse.success) {
+        return rpcError(res, id, -32602, 'Invalid params')
+      }
 
-      const uris: string[] = Array.isArray(rawUris) ? (rawUris as string[]) : []
-      const options: Aria2Options =
-        rawOptions && typeof rawOptions === 'object' && !Array.isArray(rawOptions)
-          ? (rawOptions as Aria2Options)
-          : {}
+      const [uris, rawOptions] = argsParse.data
+      const options = rawOptions as Aria2Options
 
       // --- NORMALIZATION AND OVERRIDES ---
       // Guard against non-string values in header (untrusted JSON input may contain numbers/objects)
-      const customHeaders: string[] = Array.isArray(options.header)
-        ? options.header.filter((h): h is string => typeof h === 'string')
-        : typeof options.header === 'string'
-          ? [options.header]
-          : []
+      const customHeaders = HeaderSchema.parse(options.header)
 
-      let originalReferer: string | null = null
-      let originalCookie: string | null = null
-      let originalUserAgent: string | null = null
-
-      // Clear out any existing user-agent/referer/cookie from the header array to prevent duplicates
-      const finalHeaders: string[] = customHeaders.filter((h) => {
-        const lower = h.toLowerCase()
-        if (lower.startsWith('referer:')) originalReferer = h.substring(8).trim()
-        if (lower.startsWith('cookie:')) originalCookie = h.substring(7).trim()
-        if (lower.startsWith('user-agent:')) originalUserAgent = h.substring(11).trim()
-        return (
-          !lower.startsWith('user-agent:') &&
-          !lower.startsWith('referer:') &&
-          !lower.startsWith('cookie:')
-        )
-      })
+      const { extracted, remaining: finalHeaders } = extractAndFilterHeaders(customHeaders, [
+        'referer',
+        'cookie',
+        'user-agent',
+      ])
 
       // Extract from HTTP headers, explicit options payload, or the ones extracted above
       const referer =
-        (req.headers['referer'] as string | undefined) || options['referer'] || originalReferer
+        (req.headers['referer'] as string | undefined) || options['referer'] || extracted['referer']
       if (referer) finalHeaders.push('Referer: ' + referer)
 
       const cookie =
-        (req.headers['cookie'] as string | undefined) || options['cookie'] || originalCookie
+        (req.headers['cookie'] as string | undefined) || options['cookie'] || extracted['cookie']
       if (cookie) finalHeaders.push('Cookie: ' + cookie)
 
       // Override User-Agent ONLY if process.env.USER_AGENT is set, otherwise preserve incoming
@@ -125,7 +125,7 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
         process.env.USER_AGENT ||
         (req.headers['user-agent'] as string | undefined) ||
         options['user-agent'] ||
-        originalUserAgent
+        extracted['user-agent']
       if (userAgent) finalHeaders.push('User-Agent: ' + userAgent)
 
       // Reassign normalized headers and drop bare options
@@ -137,45 +137,7 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
 
       // --- AUTOMATED RENAME ---
       if (options.out) {
-        try {
-          const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
-          if (fs.existsSync(rulesPath)) {
-            const content = fs.readFileSync(rulesPath, 'utf8')
-            const rules = yaml.parse(content)
-            if (Array.isArray(rules)) {
-              let newOut = options.out
-              let modified = false
-
-              for (const rule of rules) {
-                if (Array.isArray(rule) && rule.length >= 2) {
-                  const target = String(rule[0])
-                  const replacement = String(rule[1])
-                  if (target) {
-                    newOut = newOut.split(target).join(replacement)
-                    modified = true
-                  }
-                }
-              }
-
-              if (modified) {
-                if (newOut.trim() !== '') {
-                  options.out = newOut
-                  logger.debug(
-                    { original: options.out, new: newOut },
-                    'Applied rename rules to filename',
-                  )
-                } else {
-                  logger.warn(
-                    { out: options.out },
-                    'Rename rules resulted in empty filename, ignoring.',
-                  )
-                }
-              }
-            }
-          }
-        } catch (err) {
-          logger.error(err, 'Failed to process rename rules')
-        }
+        options.out = applyRenameRules(options.out, cachedRenameRules, logger)
       }
       // --- END AUTOMATED RENAME ---
 

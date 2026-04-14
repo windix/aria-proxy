@@ -4,6 +4,7 @@ import db from '../src/db'
 import fs from 'fs'
 import path from 'path'
 import yaml from 'yaml'
+import { testHelpers } from '../src/jsonrpc'
 
 describe('JSON-RPC API', () => {
   beforeEach(() => {
@@ -108,6 +109,9 @@ describe('JSON-RPC API', () => {
       ]),
     )
 
+    // Force cache refresh for the mock file
+    if (testHelpers.reloadRenameRules) testHelpers.reloadRenameRules()
+
     try {
       const payload = JSON.stringify({
         jsonrpc: '2.0',
@@ -142,6 +146,9 @@ describe('JSON-RPC API', () => {
     // Write temporary rules
     fs.mkdirSync(path.dirname(rulesPath), { recursive: true })
     fs.writeFileSync(rulesPath, yaml.stringify([['ONLY-THIS', '']]))
+
+    // Force cache refresh for the mock file
+    if (testHelpers.reloadRenameRules) testHelpers.reloadRenameRules()
 
     try {
       const payload = JSON.stringify({
