@@ -81,6 +81,8 @@ function extractAndFilterHeaders(headers: string[], targets: string[]) {
 }
 // --- END HELPER FUNCTIONS ---
 
+export const testHelpers: { reloadRenameRules?: () => void } = {}
+
 export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
   const router = express.Router()
 
@@ -104,17 +106,8 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
 
   loadRenameRules()
 
-  try {
-    if (fs.existsSync(path.dirname(rulesPath))) {
-      const watcher = fs.watch(path.dirname(rulesPath), (eventType, filename) => {
-        if (!filename || filename === 'rename-rules.yaml') {
-          setTimeout(loadRenameRules, 50)
-        }
-      })
-      watcher.unref()
-    }
-  } catch (err) {
-    logger.warn({ err }, 'Could not initialize fs.watch for rename-rules.yaml')
+  if (process.env.NODE_ENV === 'test') {
+    testHelpers.reloadRenameRules = loadRenameRules
   }
   // --- END RENAME RULES CACHE ---
 
