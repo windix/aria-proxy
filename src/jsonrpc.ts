@@ -1,7 +1,5 @@
 import express, { type Router, type Request, type Response } from 'express'
-import fs from 'fs'
 import path from 'path'
-import yaml from 'yaml'
 import type { Logger } from 'pino'
 
 import type { DB, Aria2Options } from './types'
@@ -13,7 +11,8 @@ import {
   HeaderSchema,
   extractAndFilterHeaders,
 } from './schemas/payload'
-import { RenameRulesSchema } from './schemas/rename'
+import { loadRenameRules, applyRenameRules } from './schemas/rename'
+import type { RenameRule } from './schemas/rename'
 
 export const testHelpers: { reloadRenameRules?: () => void } = {}
 
@@ -21,27 +20,17 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
   const router = express.Router()
 
   // --- RENAME RULES CACHE ---
-  let cachedRenameRules: { target: string; replacement: string }[] = []
+  let cachedRenameRules: RenameRule[] = []
   const rulesPath = path.join(__dirname, '../data/rename-rules.yaml')
 
-  const loadRenameRules = () => {
-    try {
-      if (fs.existsSync(rulesPath)) {
-        const content = fs.readFileSync(rulesPath, 'utf8')
-        cachedRenameRules = RenameRulesSchema.parse(yaml.parse(content))
-        logger.debug('Rename rules loaded into memory cache')
-      } else {
-        cachedRenameRules = []
-      }
-    } catch (err) {
-      logger.error(err, 'Failed to parse rename rules from disk')
-    }
+  const reloadRules = () => {
+    cachedRenameRules = loadRenameRules(rulesPath, logger)
   }
 
-  loadRenameRules()
+  reloadRules()
 
   if (process.env.NODE_ENV === 'test') {
-    testHelpers.reloadRenameRules = loadRenameRules
+    testHelpers.reloadRenameRules = reloadRules
   }
   // --- END RENAME RULES CACHE ---
 
@@ -147,21 +136,8 @@ export default function createJsonRpcRouter(db: DB, logger: Logger): Router {
       // --- END NORMALIZATION ---
 
       // --- AUTOMATED RENAME ---
-      if (options.out && cachedRenameRules.length > 0) {
-        let newOut = options.out
-
-        for (const { target, replacement } of cachedRenameRules) {
-          newOut = newOut.split(target).join(replacement)
-        }
-
-        if (newOut !== options.out) {
-          if (newOut.trim() !== '') {
-            options.out = newOut
-            logger.debug({ original: options.out, new: newOut }, 'Applied rename rules to filename')
-          } else {
-            logger.warn({ out: options.out }, 'Rename rules resulted in empty filename, ignoring.')
-          }
-        }
+      if (options.out) {
+        options.out = applyRenameRules(options.out, cachedRenameRules, logger)
       }
       // --- END AUTOMATED RENAME ---
 
